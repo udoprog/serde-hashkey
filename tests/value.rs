@@ -1,5 +1,5 @@
 use serde_derive::{Deserialize, Serialize};
-use serde_hashkey::{from_key, to_key, Error, Key};
+use serde_hashkey::{from_key, to_key, Error, Integer, Key};
 use std::collections::BTreeMap;
 
 #[test]
@@ -47,4 +47,10 @@ fn test_enum() -> Result<(), Error> {
         Operation1(String, String),
         Operation2(String),
     }
+}
+
+#[test]
+fn test_width() {
+    assert_eq!(24, std::mem::size_of::<Integer>());
+    assert_eq!(32, std::mem::size_of::<Key>());
 }

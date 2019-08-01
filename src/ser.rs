@@ -3,7 +3,7 @@
 use crate::error::Error;
 use serde::ser;
 
-use crate::key::Key;
+use crate::key::{Integer, Key};
 
 /// Convert the given type to a value.
 pub fn to_key<T>(value: &T) -> Result<Key, Error>
@@ -20,7 +20,17 @@ impl ser::Serialize for Key {
         S: ser::Serializer,
     {
         match self {
-            Key::Integer(v) => serializer.serialize_i128(*v),
+            Key::Unit => serializer.serialize_unit(),
+            Key::Integer(Integer::U8(v)) => serializer.serialize_u8(*v),
+            Key::Integer(Integer::U16(v)) => serializer.serialize_u16(*v),
+            Key::Integer(Integer::U32(v)) => serializer.serialize_u32(*v),
+            Key::Integer(Integer::U64(v)) => serializer.serialize_u64(*v),
+            Key::Integer(Integer::U128(v)) => serializer.serialize_u128(*v),
+            Key::Integer(Integer::I8(v)) => serializer.serialize_i8(*v),
+            Key::Integer(Integer::I16(v)) => serializer.serialize_i16(*v),
+            Key::Integer(Integer::I32(v)) => serializer.serialize_i32(*v),
+            Key::Integer(Integer::I64(v)) => serializer.serialize_i64(*v),
+            Key::Integer(Integer::I128(v)) => serializer.serialize_i128(*v),
             Key::Bytes(v) => serializer.serialize_bytes(&v),
             Key::String(v) => serializer.serialize_str(&v),
             Key::Vec(v) => v.serialize(serializer),
@@ -37,8 +47,6 @@ impl ser::Serialize for Key {
                 map.end()
             }
             Key::Bool(v) => serializer.serialize_bool(*v),
-            Key::Option(None) => serializer.serialize_unit(),
-            Key::Option(Some(value)) => value.serialize(serializer),
         }
     }
 }
@@ -64,46 +72,51 @@ impl ser::Serializer for Serializer {
 
     #[inline]
     fn serialize_i8(self, value: i8) -> Result<Key, Error> {
-        self.serialize_i64(i64::from(value))
+        Ok(value.into())
     }
 
     #[inline]
     fn serialize_i16(self, value: i16) -> Result<Key, Error> {
-        self.serialize_i64(i64::from(value))
+        Ok(value.into())
     }
 
     #[inline]
     fn serialize_i32(self, value: i32) -> Result<Key, Error> {
-        self.serialize_i64(i64::from(value))
+        Ok(value.into())
     }
 
     #[inline]
     fn serialize_i64(self, value: i64) -> Result<Key, Error> {
-        self.serialize_i128(i128::from(value))
+        Ok(value.into())
     }
 
     fn serialize_i128(self, value: i128) -> Result<Key, Error> {
-        Ok(Key::Integer(value))
+        Ok(value.into())
     }
 
     #[inline]
     fn serialize_u8(self, value: u8) -> Result<Key, Error> {
-        self.serialize_u64(u64::from(value))
+        Ok(value.into())
     }
 
     #[inline]
     fn serialize_u16(self, value: u16) -> Result<Key, Error> {
-        self.serialize_u64(u64::from(value))
+        Ok(value.into())
     }
 
     #[inline]
     fn serialize_u32(self, value: u32) -> Result<Key, Error> {
-        self.serialize_u64(u64::from(value))
+        Ok(value.into())
     }
 
     #[inline]
     fn serialize_u64(self, value: u64) -> Result<Key, Error> {
-        Ok(Key::Integer(value.into()))
+        Ok(value.into())
+    }
+
+    #[inline]
+    fn serialize_u128(self, value: u128) -> Result<Key, Error> {
+        Ok(value.into())
     }
 
     #[inline]
@@ -134,7 +147,7 @@ impl ser::Serializer for Serializer {
 
     #[inline]
     fn serialize_unit(self) -> Result<Key, Error> {
-        Ok(Key::Option(None))
+        Ok(Key::Unit)
     }
 
     #[inline]

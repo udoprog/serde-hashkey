@@ -10,6 +10,6 @@ pub use crate::de::from_key;
 #[doc(inline)]
 pub use crate::error::{Error, Result};
 #[doc(inline)]
-pub use crate::key::Key;
+pub use crate::key::{Integer, Key};
 #[doc(inline)]
 pub use crate::ser::to_key;

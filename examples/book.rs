@@ -1,5 +1,5 @@
 use serde_derive::{Deserialize, Serialize};
-use serde_hashkey::{from_key, to_key, Error, Key};
+use serde_hashkey::to_key;
 use std::{collections::HashMap, error};
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]

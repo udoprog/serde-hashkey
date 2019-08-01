@@ -3,7 +3,10 @@
 use serde::de::{self, IntoDeserializer};
 use std::fmt;
 
-use crate::{error::Error, key::Key};
+use crate::{
+    error::Error,
+    key::{Integer, Key},
+};
 
 /// Convert a `Key` into a type `T`
 pub fn from_key<T>(value: &Key) -> Result<T, crate::error::Error>
@@ -40,14 +43,22 @@ impl<'de> de::Deserializer<'de> for Deserializer<'de> {
         V: de::Visitor<'de>,
     {
         return match self.value {
+            Key::Unit => visitor.visit_unit(),
             Key::Bool(b) => visitor.visit_bool(*b),
-            Key::Integer(n) => visitor.visit_i128(*n),
+            Key::Integer(Integer::U8(v)) => visitor.visit_u8(*v),
+            Key::Integer(Integer::U16(v)) => visitor.visit_u16(*v),
+            Key::Integer(Integer::U32(v)) => visitor.visit_u32(*v),
+            Key::Integer(Integer::U64(v)) => visitor.visit_u64(*v),
+            Key::Integer(Integer::U128(v)) => visitor.visit_u128(*v),
+            Key::Integer(Integer::I8(v)) => visitor.visit_i8(*v),
+            Key::Integer(Integer::I16(v)) => visitor.visit_i16(*v),
+            Key::Integer(Integer::I32(v)) => visitor.visit_i32(*v),
+            Key::Integer(Integer::I64(v)) => visitor.visit_i64(*v),
+            Key::Integer(Integer::I128(v)) => visitor.visit_i128(*v),
             Key::String(s) => visitor.visit_str(s),
             Key::Vec(array) => visitor.visit_seq(SeqDeserializer::new(array)),
             Key::Map(m) => visitor.visit_map(MapDeserializer::new(m)),
             Key::Bytes(bytes) => visitor.visit_borrowed_bytes(bytes),
-            Key::Option(None) => visitor.visit_unit(),
-            Key::Option(Some(value)) => value.into_deserializer().deserialize_any(visitor),
         };
     }
 
@@ -57,10 +68,7 @@ impl<'de> de::Deserializer<'de> for Deserializer<'de> {
         V: de::Visitor<'de>,
     {
         match self.value {
-            Key::Option(None) => visitor.visit_none(),
-            Key::Option(Some(value)) => {
-                return value.into_deserializer().deserialize_any(visitor);
-            }
+            Key::Unit => visitor.visit_none(),
             _ => visitor.visit_some(self),
         }
     }
@@ -363,11 +371,27 @@ impl<'de> de::Deserialize<'de> for Key {
             }
 
             #[inline]
-            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+            fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E>
             where
                 E: de::Error,
             {
-                Ok(Key::Integer(v.into()))
+                Ok(v.into())
+            }
+
+            #[inline]
+            fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(v.into())
+            }
+
+            #[inline]
+            fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(v.into())
             }
 
             #[inline]
@@ -375,7 +399,7 @@ impl<'de> de::Deserialize<'de> for Key {
             where
                 E: de::Error,
             {
-                Ok(Key::Integer(v.into()))
+                Ok(v.into())
             }
 
             #[inline]
@@ -383,7 +407,47 @@ impl<'de> de::Deserialize<'de> for Key {
             where
                 E: de::Error,
             {
-                Ok(Key::Integer(v))
+                Ok(v.into())
+            }
+
+            #[inline]
+            fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(v.into())
+            }
+
+            #[inline]
+            fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(v.into())
+            }
+
+            #[inline]
+            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(v.into())
+            }
+
+            #[inline]
+            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(v.into())
+            }
+
+            #[inline]
+            fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(v.into())
             }
 
             #[inline]
@@ -407,7 +471,7 @@ impl<'de> de::Deserialize<'de> for Key {
             where
                 E: de::Error,
             {
-                Ok(Key::Option(None))
+                Ok(Key::Unit)
             }
 
             #[inline]
