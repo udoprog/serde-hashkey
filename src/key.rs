@@ -1,4 +1,5 @@
 //! In-memory value representation for values.
+use std::mem;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Integer {
@@ -23,6 +24,31 @@ pub enum Key {
     String(String),
     Vec(Vec<Key>),
     Map(Vec<(Key, Key)>),
+}
+
+impl Key {
+    /// Normalize the key, making sure that all contained maps are sorted.
+    pub fn normalize(self) -> Key {
+        match self {
+            Key::Vec(mut vec) => {
+                for value in &mut vec {
+                    *value = mem::replace(value, Key::Unit).normalize();
+                }
+
+                Key::Vec(vec)
+            }
+            Key::Map(mut map) => {
+                for (key, value) in &mut map {
+                    *key = mem::replace(key, Key::Unit).normalize();
+                    *value = mem::replace(value, Key::Unit).normalize();
+                }
+
+                map.sort_by(|a, b| a.0.cmp(&b.0));
+                Key::Map(map)
+            }
+            other => other,
+        }
+    }
 }
 
 macro_rules! impl_integer_from {
