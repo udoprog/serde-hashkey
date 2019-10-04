@@ -26,6 +26,12 @@ pub enum Key {
     Map(Vec<(Key, Key)>),
 }
 
+impl Default for Key {
+    fn default() -> Self {
+        Self::Unit
+    }
+}
+
 impl Key {
     /// Normalize the key, making sure that all contained maps are sorted.
     pub fn normalize(self) -> Key {
@@ -87,3 +93,13 @@ impl_from!(Key::Bytes, Vec<u8>);
 impl_from!(Key::String, String);
 impl_from!(Key::Vec, Vec<Key>);
 impl_from!(Key::Map, Vec<(Key, Key)>);
+
+#[cfg(test)]
+mod tests {
+    use super::Key;
+
+    #[test]
+    fn assert_default() {
+        assert_eq!(Key::Unit, Key::default());
+    }
+}
