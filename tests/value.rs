@@ -40,12 +40,17 @@ fn test_enum() -> Result<(), Error> {
     }
 
     assert_eq!(foo, from_key::<Foo>(&value)?);
+    assert_eq!(
+        Foo::Operation3,
+        from_key::<Foo>(&to_key(&Foo::Operation3)?)?
+    );
     return Ok(());
 
     #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
     enum Foo {
         Operation1(String, String),
         Operation2(String),
+        Operation3,
     }
 }
 
