@@ -1,28 +1,55 @@
 //! In-memory value representation for values.
 use std::mem;
 
+/// An opaque integer.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Integer {
+    /// Variant representing a `i8` integer.
     I8(i8),
+    /// Variant representing a `i16` integer.
     I16(i16),
+    /// Variant representing a `i32` integer.
     I32(i32),
+    /// Variant representing a `i64` integer.
     I64(i64),
+    /// Variant representing a `i128` integer.
     I128(i128),
+    /// Variant representing a `u8` integer.
     U8(u8),
+    /// Variant representing a `u16` integer.
     U16(u16),
+    /// Variant representing a `u32` integer.
     U32(u32),
+    /// Variant representing a `u64` integer.
     U64(u64),
+    /// Variant representing a `u128` integer.
     U128(u128),
 }
 
+/// The central key type, which is an in-memory representation of all supported
+/// serde-serialized values.
+///
+/// This can be serialized to a type implementing [serde::Deserialize] using
+/// [from_key], and deserialized from a type implementing [serde::Serialize]
+/// using [to_key]. See the corresponding function for documentation.
+///
+/// [from_key]: crate::from_key
+/// [to_key]: crate::to_key
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Key {
+    /// A unit value.
     Unit,
+    /// A boolean value.
     Bool(bool),
+    /// An integer.
     Integer(Integer),
+    /// A byte array.
     Bytes(Vec<u8>),
+    /// A string.
     String(String),
+    /// A vector.
     Vec(Vec<Key>),
+    /// A map.
     Map(Vec<(Key, Key)>),
 }
 

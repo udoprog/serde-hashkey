@@ -2,6 +2,8 @@
 use serde::{de, ser};
 use std::{error, fmt, result};
 
+/// Errors that can occur during serialization and deserialization of a
+/// [Key](crate::Key).
 #[derive(Debug)]
 pub enum Error {
     /// Unexpected type encountered.
@@ -18,7 +20,8 @@ pub enum Error {
     InvalidLength,
 }
 
-pub type Result<T> = result::Result<T, Error>;
+/// Helper alias for a Result which already represents our local [Error] type.
+pub type Result<T, E = Error> = result::Result<T, E>;
 
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

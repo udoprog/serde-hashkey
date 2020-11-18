@@ -8,7 +8,43 @@ use crate::{
     key::{Integer, Key},
 };
 
-/// Convert a `Key` into a type `T`
+/// Deserialize the given type from a [Key].
+///
+/// # Examples
+///
+/// ```rust
+/// use serde_derive::{Deserialize, Serialize};
+/// use serde_hashkey::{from_key, to_key, Key};
+/// use std::collections::HashMap;
+///
+/// #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// struct Author {
+///     name: String,
+///     age: u32,
+/// }
+///
+/// #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// struct Book {
+///     title: String,
+///     author: Author,
+/// }
+///
+/// # fn main() -> serde_hashkey::Result<()> {
+/// let book = Book {
+///     title: String::from("Birds of a feather"),
+///     author: Author {
+///         name: String::from("Noah"),
+///         age: 42,
+///     },
+/// };
+///
+/// let key = to_key(&book)?;
+/// let book2 = from_key(&key)?;
+///
+/// assert_eq!(book, book2);
+/// # Ok(())
+/// # }
+/// ```
 pub fn from_key<T>(value: &Key) -> Result<T, crate::error::Error>
 where
     T: de::DeserializeOwned,

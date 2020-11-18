@@ -12,13 +12,12 @@
 
 Serde-based in-memory key serialization.
 
-This allows any serde-serializable type to be converted into a `Value` which
+This allows any serde-serializable type to be converted into a value which
 implements `PartialEq`, `Eq`, `ParialOrd`, `Ord`, and `Hash`. The only
-limitation is that the type can't serialize floating point values. This
-might be lifted in the future by specifying policies for dealing with
-non-finite values.
+limitation is that the type can't serialize floating point values, since
+these are not [totally ordered nor hashable] by default.
 
-`Key` is useful because it allows for a form of type-erasure. Let's say you
+[Key] is useful because it allows for a form of type-erasure. Let's say you
 want to build a generic in-memory key-value store where you want to store
 arbitrary serde-serializable keys. This is typical for things like caches or
 dependency injection frameworks.
@@ -73,5 +72,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     Ok(())
 }
 ```
+
+[totally ordered nor hashable]: https://internals.rust-lang.org/t/f32-f64-should-implement-hash/5436
+[Key]: https://docs.rs/serde-hashkey/0/serde_hashkey/enum.Key.html
 
 License: MIT/Apache-2.0

@@ -5,7 +5,65 @@ use serde::ser;
 
 use crate::key::{Integer, Key};
 
-/// Convert the given type to a value.
+/// Serialize the given value to a [Key].
+///
+/// # Examples
+///
+/// ```rust
+/// use serde_derive::{Deserialize, Serialize};
+/// use serde_hashkey::{from_key, to_key, Key};
+/// use std::collections::HashMap;
+///
+/// #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// struct Author {
+///     name: String,
+///     age: u32,
+/// }
+///
+/// #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// struct Book {
+///     title: String,
+///     author: Author,
+/// }
+///
+/// # fn main() -> serde_hashkey::Result<()> {
+/// let book = Book {
+///     title: String::from("Birds of a feather"),
+///     author: Author {
+///         name: String::from("Noah"),
+///         age: 42,
+///     },
+/// };
+///
+/// let key = to_key(&book)?;
+/// let book2 = from_key(&key)?;
+///
+/// assert_eq!(book, book2);
+/// # Ok(())
+/// # }
+/// ```
+///
+/// Attempting to serialize a float causes an error:
+///
+/// ```rust
+/// use serde_derive::Serialize;
+/// use serde_hashkey::{to_key, Key};
+///
+/// #[derive(Debug, PartialEq, Serialize)]
+/// struct Npc {
+///     health: f32,
+/// }
+///
+/// # fn main() -> serde_hashkey::Result<()> {
+/// let npc = Npc {
+///     health: 0.8,
+/// };
+///
+/// let result = to_key(&npc);
+/// assert!(result.is_err());
+/// # Ok(())
+/// # }
+/// ```
 pub fn to_key<T>(value: &T) -> Result<Key, Error>
 where
     T: ser::Serialize,
