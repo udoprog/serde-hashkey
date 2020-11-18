@@ -109,6 +109,7 @@ impl<'de> de::Deserializer<'de> for Deserializer<'de> {
 
                 (variant, Some(value))
             }
+            Key::String(_) => (self.value, None),
             _ => {
                 return Err(Error::Unexpected("string or map"));
             }
