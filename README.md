@@ -1,17 +1,31 @@
-# Serde Hash-Key Serialization
+# serde-hashkey
 
-[![Build Status](https://travis-ci.org/udoprog/serde-hashkey.svg?branch=master)](https://travis-ci.org/udoprog/serde-hashkey)
-[![Documentation](https://docs.rs/serde-hashkey/badge.svg)](https://docs.rs/serde-hashkey)
+<div align="center">
+  <a href="https://github.com/udoprog/serde-hashkey/actions">
+    <img alt="GitHub Actions Build Status" src="https://github.com/udoprog/serde-hashkey/workflows/Build/badge.svg">
+  </a>
+
+  <a href="https://docs.rs/serde-hashkey">
+    <img alt="Documentation" src="https://docs.rs/serde-hashkey/badge.svg">
+  </a>
+</div>
 
 Serde-based in-memory key serialization.
 
-This allows any serde-serializable type to be converted into a `Value` which implements `PartialEq`, `Eq`, `ParialOrd`, `Ord`, and `Hash`. The only limitation is that the type can't serialize floating point-types. This might be lifted in the future by specifying policies for dealing with non-finite values.
+This allows any serde-serializable type to be converted into a `Value` which
+implements `PartialEq`, `Eq`, `ParialOrd`, `Ord`, and `Hash`. The only
+limitation is that the type can't serialize floating point values. This
+might be lifted in the future by specifying policies for dealing with
+non-finite values.
 
-`Key` is useful because it allows for a form of type-erasure. Let's say you want to build a generic in-memory key-value store where you want to store arbitrary serde-serializable keys. This is typical for things like caches or dependency injection frameworks.
+`Key` is useful because it allows for a form of type-erasure. Let's say you
+want to build a generic in-memory key-value store where you want to store
+arbitrary serde-serializable keys. This is typical for things like caches or
+dependency injection frameworks.
 
-## Examples
+### Examples
 
-Note: available as `cargo run --example book`
+> You can run this example with `cargo run --example book`
 
 ```rust
 use serde_derive::{Deserialize, Serialize};
@@ -59,3 +73,5 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     Ok(())
 }
 ```
+
+License: MIT/Apache-2.0

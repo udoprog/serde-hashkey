@@ -1,6 +1,6 @@
 [package]
 name = "serde-hashkey"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["John-John Tedro"]
 repository = "https://github.com/udoprog/serde-hashkey"
 readme = "README.md"
@@ -11,10 +11,6 @@ Space efficient, in-memory key based on serde.
 keywords = ["serde", "serialization"]
 categories = ["encoding"]
 edition = "2018"
-
-[badges]
-travis-ci = { repository = "udoprog/serde-hashkey" }
-maintenance = { status = "actively-developed" }
 
 [dependencies]
 serde = { version = "1.0.98" }
