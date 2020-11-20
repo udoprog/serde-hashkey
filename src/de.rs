@@ -1,11 +1,12 @@
 //! Deserialization for serde-hashkey.
 
+use ordered_float::OrderedFloat;
 use serde::de::{self, IntoDeserializer};
 use std::fmt;
 
 use crate::{
     error::Error,
-    key::{Integer, Key},
+    key::{Float, Integer, Key},
 };
 
 /// Deserialize the given type from a [Key].
@@ -91,6 +92,8 @@ impl<'de> de::Deserializer<'de> for Deserializer<'de> {
             Key::Integer(Integer::I32(v)) => visitor.visit_i32(*v),
             Key::Integer(Integer::I64(v)) => visitor.visit_i64(*v),
             Key::Integer(Integer::I128(v)) => visitor.visit_i128(*v),
+            Key::Float(Float::F32(OrderedFloat(v))) => visitor.visit_f32(*v),
+            Key::Float(Float::F64(OrderedFloat(v))) => visitor.visit_f64(*v),
             Key::String(s) => visitor.visit_str(s),
             Key::Vec(array) => visitor.visit_seq(SeqDeserializer::new(array)),
             Key::Map(m) => visitor.visit_map(MapDeserializer::new(m)),

@@ -1,9 +1,10 @@
 //! Serialization for serde-hashkey.
 
 use crate::error::Error;
+use ordered_float::OrderedFloat;
 use serde::ser;
 
-use crate::key::{Integer, Key};
+use crate::key::{Float, Integer, Key};
 
 /// Serialize the given value to a [Key].
 ///
@@ -89,6 +90,8 @@ impl ser::Serialize for Key {
             Key::Integer(Integer::I32(v)) => serializer.serialize_i32(*v),
             Key::Integer(Integer::I64(v)) => serializer.serialize_i64(*v),
             Key::Integer(Integer::I128(v)) => serializer.serialize_i128(*v),
+            Key::Float(Float::F32(OrderedFloat(v))) => serializer.serialize_f32(*v),
+            Key::Float(Float::F64(OrderedFloat(v))) => serializer.serialize_f64(*v),
             Key::Bytes(v) => serializer.serialize_bytes(&v),
             Key::String(v) => serializer.serialize_str(&v),
             Key::Vec(v) => v.serialize(serializer),
@@ -178,13 +181,13 @@ impl ser::Serializer for Serializer {
     }
 
     #[inline]
-    fn serialize_f32(self, _: f32) -> Result<Key, Error> {
-        Err(Error::UnsupportedType("f32"))
+    fn serialize_f32(self, value: f32) -> Result<Key, Error> {
+        Ok(value.into())
     }
 
     #[inline]
-    fn serialize_f64(self, _: f64) -> Result<Key, Error> {
-        Err(Error::UnsupportedType("f64"))
+    fn serialize_f64(self, value: f64) -> Result<Key, Error> {
+        Ok(value.into())
     }
 
     #[inline]

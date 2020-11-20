@@ -1,4 +1,5 @@
 //! In-memory value representation for values.
+use ordered_float::OrderedFloat;
 use std::mem;
 
 /// An opaque integer.
@@ -26,6 +27,15 @@ pub enum Integer {
     U128(u128),
 }
 
+/// An opaque floating-point type which has a total ordering.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Float {
+    /// Variant for an `f32`, in a wrapper implementing a total ordering.
+    F32(OrderedFloat<f32>),
+    /// Variant for an `f64`, in a wrapper implementing a total ordering.
+    F64(OrderedFloat<f64>),
+}
+
 /// The central key type, which is an in-memory representation of all supported
 /// serde-serialized values.
 ///
@@ -43,6 +53,8 @@ pub enum Key {
     Bool(bool),
     /// An integer.
     Integer(Integer),
+    /// A floating-point number.
+    Float(Float),
     /// A byte array.
     Bytes(Vec<u8>),
     /// A string.
@@ -94,6 +106,16 @@ macro_rules! impl_integer_from {
     };
 }
 
+macro_rules! impl_float_from {
+    ($variant:ident, $for_type:ty) => {
+        impl From<$for_type> for Key {
+            fn from(v: $for_type) -> Key {
+                Key::Float(Float::$variant(OrderedFloat(v)))
+            }
+        }
+    };
+}
+
 macro_rules! impl_from {
     ($variant:path, $for_type:ty) => {
         impl From<$for_type> for Key {
@@ -114,6 +136,9 @@ impl_integer_from!(U16, u16);
 impl_integer_from!(U32, u32);
 impl_integer_from!(U64, u64);
 impl_integer_from!(U128, u128);
+
+impl_float_from!(F32, f32);
+impl_float_from!(F64, f64);
 
 impl_from!(Key::Bool, bool);
 impl_from!(Key::Bytes, Vec<u8>);
