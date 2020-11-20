@@ -4,7 +4,7 @@ use std::{error, fmt, result};
 
 /// Errors that can occur during serialization and deserialization of a
 /// [Key](crate::Key).
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Error {
     /// Unexpected type encountered.
     Unexpected(&'static str),

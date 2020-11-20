@@ -1,5 +1,9 @@
 //! In-memory value representation for values.
-use ordered_float::OrderedFloat;
+use crate::error::Error;
+use serde_derive::*;
+use std::cmp::Ordering;
+use std::convert::{TryFrom, TryInto};
+use std::hash::{Hash, Hasher};
 use std::mem;
 
 /// An opaque integer.
@@ -28,12 +32,144 @@ pub enum Integer {
 }
 
 /// An opaque floating-point type which has a total ordering.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Float {
-    /// Variant for an `f32`, in a wrapper implementing a total ordering.
-    F32(OrderedFloat<f32>),
-    /// Variant for an `f64`, in a wrapper implementing a total ordering.
-    F64(OrderedFloat<f64>),
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum OrderedFloat {
+    /// Variant for an `f32`.
+    F32(f32),
+    /// Variant for an `f64`.
+    F64(f64),
+}
+
+impl PartialEq for OrderedFloat {
+    fn eq(&self, other: &Self) -> bool {
+        use ordered_float::OrderedFloat as TotalOrd;
+        match (*self, *other) {
+            (Self::F32(lhs), Self::F32(rhs)) => TotalOrd(lhs) == TotalOrd(rhs),
+            (Self::F64(lhs), Self::F64(rhs)) => TotalOrd(lhs) == TotalOrd(rhs),
+            _ => false,
+        }
+    }
+}
+
+impl Eq for OrderedFloat {}
+
+impl PartialOrd for OrderedFloat {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for OrderedFloat {
+    fn cmp(&self, other: &Self) -> Ordering {
+        use ordered_float::OrderedFloat as TotalOrd;
+        match (*self, *other) {
+            (Self::F32(_), Self::F64(_)) => Ordering::Less,
+            (Self::F64(_), Self::F32(_)) => Ordering::Greater,
+            (Self::F32(lhs), Self::F32(rhs)) => TotalOrd(lhs).cmp(&TotalOrd(rhs)),
+            (Self::F64(lhs), Self::F64(rhs)) => TotalOrd(lhs).cmp(&TotalOrd(rhs)),
+        }
+    }
+}
+
+impl Hash for OrderedFloat {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        use ordered_float::OrderedFloat as TotalOrd;
+        match *self {
+            Self::F32(v) => TotalOrd(v).hash(state),
+            Self::F64(v) => TotalOrd(v).hash(state),
+        }
+    }
+}
+
+impl TryFrom<f32> for OrderedFloat {
+    type Error = Error;
+
+    fn try_from(v: f32) -> Result<Self, Self::Error> {
+        Ok(Self::F32(v))
+    }
+}
+
+impl TryFrom<f64> for OrderedFloat {
+    type Error = Error;
+
+    fn try_from(v: f64) -> Result<Self, Self::Error> {
+        Ok(Self::F64(v))
+    }
+}
+
+impl From<OrderedFloat> for FloatProxy {
+    fn from(ordered: OrderedFloat) -> Self {
+        match ordered {
+            OrderedFloat::F32(v) => FloatProxy::F32(v),
+            OrderedFloat::F64(v) => FloatProxy::F64(v),
+        }
+    }
+}
+
+/// A float serialization policy which rejects any attempt to serialize a float with an error.
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub enum RejectFloat {}
+
+impl TryFrom<f32> for RejectFloat {
+    type Error = Error;
+    fn try_from(_: f32) -> Result<Self, Self::Error> {
+        Err(Error::UnsupportedType("f32"))
+    }
+}
+
+impl TryFrom<f64> for RejectFloat {
+    type Error = Error;
+    fn try_from(_: f64) -> Result<Self, Self::Error> {
+        Err(Error::UnsupportedType("f64"))
+    }
+}
+
+impl From<RejectFloat> for FloatProxy {
+    fn from(this: RejectFloat) -> Self {
+        match this {}
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum FloatProxy {
+    F32(f32),
+    F64(f64),
+}
+
+/// A policy for handling floating point types in a `Key`.
+///
+/// Currently there are two important `FloatPolicy` types: [`RejectFloat`] and
+/// [`OrderedFloat`]. The former will emit errors instead of allowing floats to
+/// be serialized and the latter while serialize them and provide a total order
+/// which does not adhere to the IEEE standard.
+///
+/// [`RejectFloat`]: RejectFloat
+/// [`OrderedFloat`]: OrderedFloat
+pub trait FloatPolicy:
+    TryFrom<f32, Error = Error>
+    + TryFrom<f64, Error = Error>
+    + Into<FloatProxy>
+    + Clone
+    + PartialEq
+    + Eq
+    + PartialOrd
+    + Ord
+    + Hash
+{
+}
+
+impl<T> FloatPolicy for T where
+    T: TryFrom<f32, Error = Error>
+        + TryFrom<f64, Error = Error>
+        + Into<FloatProxy>
+        + Clone
+        + PartialEq
+        + Eq
+        + PartialOrd
+        + Ord
+        + Hash
+{
 }
 
 /// The central key type, which is an in-memory representation of all supported
@@ -46,7 +182,7 @@ pub enum Float {
 /// [from_key]: crate::from_key
 /// [to_key]: crate::to_key
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Key {
+pub enum Key<Float: FloatPolicy = RejectFloat> {
     /// A unit value.
     Unit,
     /// A boolean value.
@@ -60,9 +196,9 @@ pub enum Key {
     /// A string.
     String(String),
     /// A vector.
-    Vec(Vec<Key>),
+    Vec(Vec<Key<Float>>),
     /// A map.
-    Map(Vec<(Key, Key)>),
+    Map(Vec<(Key<Float>, Key<Float>)>),
 }
 
 impl Default for Key {
@@ -98,19 +234,21 @@ impl Key {
 
 macro_rules! impl_integer_from {
     ($variant:ident, $for_type:ty) => {
-        impl From<$for_type> for Key {
-            fn from(v: $for_type) -> Key {
+        impl<Float: FloatPolicy> From<$for_type> for Key<Float> {
+            fn from(v: $for_type) -> Key<Float> {
                 Key::Integer(Integer::$variant(v))
             }
         }
     };
 }
 
-macro_rules! impl_float_from {
+macro_rules! impl_float_try_from {
     ($variant:ident, $for_type:ty) => {
-        impl From<$for_type> for Key {
-            fn from(v: $for_type) -> Key {
-                Key::Float(Float::$variant(OrderedFloat(v)))
+        impl<Float: FloatPolicy> TryFrom<$for_type> for Key<Float> {
+            type Error = Error;
+
+            fn try_from(v: $for_type) -> Result<Key<Float>, Error> {
+                v.try_into().map(Key::Float)
             }
         }
     };
@@ -118,8 +256,8 @@ macro_rules! impl_float_from {
 
 macro_rules! impl_from {
     ($variant:path, $for_type:ty) => {
-        impl From<$for_type> for Key {
-            fn from(v: $for_type) -> Key {
+        impl<Float: FloatPolicy> From<$for_type> for Key<Float> {
+            fn from(v: $for_type) -> Key<Float> {
                 $variant(v.into())
             }
         }
@@ -137,14 +275,14 @@ impl_integer_from!(U32, u32);
 impl_integer_from!(U64, u64);
 impl_integer_from!(U128, u128);
 
-impl_float_from!(F32, f32);
-impl_float_from!(F64, f64);
+impl_float_try_from!(F32, f32);
+impl_float_try_from!(F64, f64);
 
 impl_from!(Key::Bool, bool);
 impl_from!(Key::Bytes, Vec<u8>);
 impl_from!(Key::String, String);
-impl_from!(Key::Vec, Vec<Key>);
-impl_from!(Key::Map, Vec<(Key, Key)>);
+impl_from!(Key::Vec, Vec<Key<Float>>);
+impl_from!(Key::Map, Vec<(Key<Float>, Key<Float>)>);
 
 #[cfg(test)]
 mod tests {

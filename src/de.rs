@@ -1,12 +1,12 @@
 //! Deserialization for serde-hashkey.
 
-use ordered_float::OrderedFloat;
 use serde::de::{self, IntoDeserializer};
 use std::fmt;
+use std::marker::PhantomData;
 
 use crate::{
     error::Error,
-    key::{Float, Integer, Key},
+    key::{FloatPolicy, FloatProxy, Integer, Key},
 };
 
 /// Deserialize the given type from a [Key].
@@ -53,25 +53,71 @@ where
     T::deserialize(Deserializer::new(&value))
 }
 
-impl<'de> IntoDeserializer<'de, Error> for &'de Key {
-    type Deserializer = Deserializer<'de>;
+/// Deserialize the given type from a [Key], with a non-default [`FloatPolicy`](key::FloatPolicy).
+///
+/// # Examples
+///
+/// ```rust
+/// use serde_derive::{Deserialize, Serialize};
+/// use serde_hashkey::{from_key_with_policy, to_key_with_policy, OrderedFloat, Key};
+/// use std::collections::HashMap;
+///
+/// #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// struct Author {
+///     name: String,
+///     age: u32,
+/// }
+///
+/// #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// struct Book {
+///     title: String,
+///     author: Author,
+/// }
+///
+/// # fn main() -> serde_hashkey::Result<()> {
+/// let book = Book {
+///     title: String::from("Birds of a feather"),
+///     author: Author {
+///         name: String::from("Noah"),
+///         age: 42,
+///     },
+/// };
+///
+/// let key = to_key_with_policy::<OrderedFloat, _>(&book)?;
+/// let book2 = from_key_with_policy::<OrderedFloat, _>(&key)?;
+///
+/// assert_eq!(book, book2);
+/// # Ok(())
+/// # }
+/// ```
+pub fn from_key_with_policy<Float: FloatPolicy, T>(
+    value: &Key<Float>,
+) -> Result<T, crate::error::Error>
+where
+    T: de::DeserializeOwned,
+{
+    T::deserialize(Deserializer::new(&value))
+}
+
+impl<'de, Float: FloatPolicy> IntoDeserializer<'de, Error> for &'de Key<Float> {
+    type Deserializer = Deserializer<'de, Float>;
 
     fn into_deserializer(self) -> Self::Deserializer {
         Deserializer::new(self)
     }
 }
 
-pub struct Deserializer<'de> {
-    value: &'de Key,
+pub struct Deserializer<'de, Float: FloatPolicy> {
+    value: &'de Key<Float>,
 }
 
-impl<'de> Deserializer<'de> {
-    pub fn new(value: &'de Key) -> Self {
+impl<'de, Float: FloatPolicy> Deserializer<'de, Float> {
+    pub fn new(value: &'de Key<Float>) -> Self {
         Self { value }
     }
 }
 
-impl<'de> de::Deserializer<'de> for Deserializer<'de> {
+impl<'de, Float: FloatPolicy> de::Deserializer<'de> for Deserializer<'de, Float> {
     type Error = Error;
 
     #[inline]
@@ -92,8 +138,10 @@ impl<'de> de::Deserializer<'de> for Deserializer<'de> {
             Key::Integer(Integer::I32(v)) => visitor.visit_i32(*v),
             Key::Integer(Integer::I64(v)) => visitor.visit_i64(*v),
             Key::Integer(Integer::I128(v)) => visitor.visit_i128(*v),
-            Key::Float(Float::F32(OrderedFloat(v))) => visitor.visit_f32(*v),
-            Key::Float(Float::F64(OrderedFloat(v))) => visitor.visit_f64(*v),
+            Key::Float(float) => match float.clone().into() {
+                FloatProxy::F32(v) => visitor.visit_f32(v),
+                FloatProxy::F64(v) => visitor.visit_f64(v),
+            },
             Key::String(s) => visitor.visit_str(s),
             Key::Vec(array) => visitor.visit_seq(SeqDeserializer::new(array)),
             Key::Map(m) => visitor.visit_map(MapDeserializer::new(m)),
@@ -169,14 +217,14 @@ impl<'de> de::Deserializer<'de> for Deserializer<'de> {
     }
 }
 
-struct EnumDeserializer<'de> {
-    variant: &'de Key,
-    value: Option<&'de Key>,
+struct EnumDeserializer<'de, Float: FloatPolicy> {
+    variant: &'de Key<Float>,
+    value: Option<&'de Key<Float>>,
 }
 
-impl<'de> de::EnumAccess<'de> for EnumDeserializer<'de> {
+impl<'de, Float: FloatPolicy> de::EnumAccess<'de> for EnumDeserializer<'de, Float> {
     type Error = Error;
-    type Variant = VariantDeserializer<'de>;
+    type Variant = VariantDeserializer<'de, Float>;
 
     fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant), Error>
     where
@@ -188,11 +236,11 @@ impl<'de> de::EnumAccess<'de> for EnumDeserializer<'de> {
     }
 }
 
-struct VariantDeserializer<'de> {
-    value: Option<&'de Key>,
+struct VariantDeserializer<'de, Float: FloatPolicy> {
+    value: Option<&'de Key<Float>>,
 }
 
-impl<'de> de::VariantAccess<'de> for VariantDeserializer<'de> {
+impl<'de, Float: FloatPolicy> de::VariantAccess<'de> for VariantDeserializer<'de, Float> {
     type Error = Error;
 
     fn unit_variant(self) -> Result<(), Error> {
@@ -243,17 +291,17 @@ impl<'de> de::VariantAccess<'de> for VariantDeserializer<'de> {
     }
 }
 
-struct SeqDeserializer<'de> {
-    values: &'de [Key],
+struct SeqDeserializer<'de, Float: FloatPolicy> {
+    values: &'de [Key<Float>],
 }
 
-impl<'de> SeqDeserializer<'de> {
-    pub fn new(values: &'de [Key]) -> Self {
+impl<'de, Float: FloatPolicy> SeqDeserializer<'de, Float> {
+    pub fn new(values: &'de [Key<Float>]) -> Self {
         Self { values }
     }
 }
 
-impl<'de> serde::Deserializer<'de> for SeqDeserializer<'de> {
+impl<'de, Float: FloatPolicy> serde::Deserializer<'de> for SeqDeserializer<'de, Float> {
     type Error = Error;
 
     #[inline]
@@ -283,7 +331,7 @@ impl<'de> serde::Deserializer<'de> for SeqDeserializer<'de> {
     }
 }
 
-impl<'de> de::SeqAccess<'de> for SeqDeserializer<'de> {
+impl<'de, Float: FloatPolicy> de::SeqAccess<'de> for SeqDeserializer<'de, Float> {
     type Error = Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
@@ -301,18 +349,18 @@ impl<'de> de::SeqAccess<'de> for SeqDeserializer<'de> {
     }
 }
 
-struct MapDeserializer<'de> {
-    map: &'de [(Key, Key)],
-    value: Option<&'de Key>,
+struct MapDeserializer<'de, Float: FloatPolicy> {
+    map: &'de [(Key<Float>, Key<Float>)],
+    value: Option<&'de Key<Float>>,
 }
 
-impl<'de> MapDeserializer<'de> {
-    pub fn new(map: &'de [(Key, Key)]) -> Self {
+impl<'de, Float: FloatPolicy> MapDeserializer<'de, Float> {
+    pub fn new(map: &'de [(Key<Float>, Key<Float>)]) -> Self {
         Self { map, value: None }
     }
 }
 
-impl<'de> serde::Deserializer<'de> for MapDeserializer<'de> {
+impl<'de, Float: FloatPolicy> serde::Deserializer<'de> for MapDeserializer<'de, Float> {
     type Error = Error;
 
     #[inline]
@@ -330,7 +378,7 @@ impl<'de> serde::Deserializer<'de> for MapDeserializer<'de> {
     }
 }
 
-impl<'de> de::MapAccess<'de> for MapDeserializer<'de> {
+impl<'de, Float: FloatPolicy> de::MapAccess<'de> for MapDeserializer<'de, Float> {
     type Error = Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
@@ -363,23 +411,23 @@ impl<'de> de::MapAccess<'de> for MapDeserializer<'de> {
     }
 }
 
-impl<'de> de::Deserialize<'de> for Key {
+impl<'de, Float: FloatPolicy> de::Deserialize<'de> for Key<Float> {
     #[inline]
-    fn deserialize<D>(deserializer: D) -> Result<Key, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<Key<Float>, D::Error>
     where
         D: de::Deserializer<'de>,
     {
-        struct ValueVisitor;
+        struct ValueVisitor<Float: FloatPolicy>(PhantomData<Float>);
 
-        impl<'de> de::Visitor<'de> for ValueVisitor {
-            type Value = Key;
+        impl<'de, Float: FloatPolicy> de::Visitor<'de> for ValueVisitor<Float> {
+            type Value = Key<Float>;
 
             fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
                 fmt.write_str("any valid key")
             }
 
             #[inline]
-            fn visit_str<E>(self, value: &str) -> Result<Key, E>
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
             where
                 E: de::Error,
             {
@@ -387,7 +435,7 @@ impl<'de> de::Deserialize<'de> for Key {
             }
 
             #[inline]
-            fn visit_string<E>(self, value: String) -> Result<Key, E>
+            fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
             where
                 E: de::Error,
             {
@@ -529,7 +577,7 @@ impl<'de> de::Deserialize<'de> for Key {
             }
 
             #[inline]
-            fn visit_map<V>(self, mut visitor: V) -> Result<Key, V::Error>
+            fn visit_map<V>(self, mut visitor: V) -> Result<Self::Value, V::Error>
             where
                 V: de::MapAccess<'de>,
             {
@@ -543,6 +591,6 @@ impl<'de> de::Deserialize<'de> for Key {
             }
         }
 
-        deserializer.deserialize_any(ValueVisitor)
+        deserializer.deserialize_any(ValueVisitor::<Float>(PhantomData))
     }
 }
