@@ -43,28 +43,6 @@ use crate::key::{Float, Integer, Key};
 /// # Ok(())
 /// # }
 /// ```
-///
-/// Attempting to serialize a float causes an error:
-///
-/// ```rust
-/// use serde_derive::Serialize;
-/// use serde_hashkey::{to_key, Key};
-///
-/// #[derive(Debug, PartialEq, Serialize)]
-/// struct Npc {
-///     health: f32,
-/// }
-///
-/// # fn main() -> serde_hashkey::Result<()> {
-/// let npc = Npc {
-///     health: 0.8,
-/// };
-///
-/// let result = to_key(&npc);
-/// assert!(result.is_err());
-/// # Ok(())
-/// # }
-/// ```
 pub fn to_key<T>(value: &T) -> Result<Key, Error>
 where
     T: ser::Serialize,

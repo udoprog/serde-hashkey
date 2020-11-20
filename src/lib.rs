@@ -11,9 +11,9 @@
 //! Serde-based in-memory key serialization.
 //!
 //! This allows any serde-serializable type to be converted into a value which
-//! implements `PartialEq`, `Eq`, `ParialOrd`, `Ord`, and `Hash`. The only
-//! limitation is that the type can't serialize floating point values, since
-//! these are not [totally ordered nor hashable] by default.
+//! implements `PartialEq`, `Eq`, `ParialOrd`, `Ord`, and `Hash`. This includes
+//! floating point types such as `f32` and `f64` through the [`ordered-float`]
+//! crate, as those are neither [totally ordered nor hashable] by default.
 //!
 //! [Key] is useful because it allows for a form of type-erasure. Let's say you
 //! want to build a generic in-memory key-value store where you want to store
@@ -86,6 +86,6 @@ pub use crate::de::from_key;
 #[doc(inline)]
 pub use crate::error::{Error, Result};
 #[doc(inline)]
-pub use crate::key::{Integer, Key};
+pub use crate::key::{Float, Integer, Key};
 #[doc(inline)]
 pub use crate::ser::to_key;
