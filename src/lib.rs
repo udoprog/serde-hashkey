@@ -13,11 +13,11 @@
 //! This allows any serde-serializable type to be converted into a value which
 //! implements `PartialEq`, `Eq`, `ParialOrd`, `Ord`, and `Hash`. This can include
 //! floating point types such as `f32` and `f64` depending on the
-//! [`FloatPolicy`](key::FloatPolicy) used with the [`Key`](key::Key) type. By
+//! [FloatPolicy] used with the [Key] type. By
 //! default, attempts to serialize `f32` and `f64` will cause an error; this
 //! is because `f32` and `f64` are neither [totally ordered nor hashable] by default.
-//! To enable the [`Key`](key::Key) type to use `f32` and `f64`, parameterize
-//! it with the [`OrderedFloat`](key::OrderedFloat) policy, like so: `Key<OrderedFloat>`.
+//! To enable the [Key] type to use `f32` and `f64`, parameterize
+//! it with the [OrderedFloat] policy, like so: `Key<OrderedFloat>`.
 //!
 //! [Key] is useful because it allows for a form of type-erasure. Let's say you
 //! want to build a generic in-memory key-value store where you want to store
@@ -76,7 +76,10 @@
 //! ```
 //!
 //! [totally ordered nor hashable]: https://internals.rust-lang.org/t/f32-f64-should-implement-hash/5436
-//! [Key]: key::Key
+//! [Key]: https://docs.rs/serde-hashkey/0/serde_hashkey/enum.Key.html
+//! [FloatPolicy]: https://docs.rs/serde-hashkey/0/serde_hashkey/trait.FloatPolicy.html
+//! [RejectFloat]: https://docs.rs/serde-hashkey/0/serde_hashkey/enum.RejectFloat.html
+//! [OrderedFloat]: https://docs.rs/serde-hashkey/0/serde_hashkey/enum.OrderedFloat.html
 
 #![deny(missing_docs)]
 
