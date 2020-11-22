@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 
 use crate::{
     error::Error,
-    key::{FloatPolicy, FloatProxy, Integer, Key},
+    key::{FloatPolicy, Integer, Key},
 };
 
 /// Deserialize the given type from a [Key].
@@ -90,10 +90,9 @@ where
 /// # Ok(())
 /// # }
 /// ```
-pub fn from_key_with_policy<Float: FloatPolicy, T>(
-    value: &Key<Float>,
-) -> Result<T, crate::error::Error>
+pub fn from_key_with_policy<Float, T>(value: &Key<Float>) -> Result<T, crate::error::Error>
 where
+    Float: FloatPolicy,
     T: de::DeserializeOwned,
 {
     T::deserialize(Deserializer::new(&value))
@@ -138,10 +137,7 @@ impl<'de, Float: FloatPolicy> de::Deserializer<'de> for Deserializer<'de, Float>
             Key::Integer(Integer::I32(v)) => visitor.visit_i32(*v),
             Key::Integer(Integer::I64(v)) => visitor.visit_i64(*v),
             Key::Integer(Integer::I128(v)) => visitor.visit_i128(*v),
-            Key::Float(float) => match float.clone().into() {
-                FloatProxy::F32(v) => visitor.visit_f32(v),
-                FloatProxy::F64(v) => visitor.visit_f64(v),
-            },
+            Key::Float(float) => float.deserialize_float(visitor),
             Key::String(s) => visitor.visit_str(s),
             Key::Vec(array) => visitor.visit_seq(SeqDeserializer::new(array)),
             Key::Map(m) => visitor.visit_map(MapDeserializer::new(m)),

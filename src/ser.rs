@@ -2,10 +2,9 @@
 
 use crate::error::Error;
 use serde::ser;
-use std::convert::TryInto;
 use std::marker::PhantomData;
 
-use crate::key::{FloatPolicy, FloatProxy, Integer, Key};
+use crate::key::{FloatPolicy, Integer, Key};
 
 /// Serialize the given value to a [Key].
 ///
@@ -114,10 +113,7 @@ impl<Float: FloatPolicy> ser::Serialize for Key<Float> {
             Key::Integer(Integer::I32(v)) => serializer.serialize_i32(*v),
             Key::Integer(Integer::I64(v)) => serializer.serialize_i64(*v),
             Key::Integer(Integer::I128(v)) => serializer.serialize_i128(*v),
-            Key::Float(float) => match float.clone().into() {
-                FloatProxy::F32(v) => serializer.serialize_f32(v),
-                FloatProxy::F64(v) => serializer.serialize_f64(v),
-            },
+            Key::Float(float) => float.serialize_float(serializer),
             Key::Bytes(v) => serializer.serialize_bytes(&v),
             Key::String(v) => serializer.serialize_str(&v),
             Key::Vec(v) => v.serialize(serializer),
@@ -208,12 +204,12 @@ impl<Float: FloatPolicy> ser::Serializer for Serializer<Float> {
 
     #[inline]
     fn serialize_f32(self, value: f32) -> Result<Key<Float>, Error> {
-        value.try_into()
+        Float::serialize_f32(value).map(Key::Float)
     }
 
     #[inline]
     fn serialize_f64(self, value: f64) -> Result<Key<Float>, Error> {
-        value.try_into()
+        Float::serialize_f64(value).map(Key::Float)
     }
 
     #[inline]

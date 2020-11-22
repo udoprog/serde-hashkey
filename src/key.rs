@@ -1,8 +1,7 @@
 //! In-memory value representation for values.
 use crate::error::Error;
-use serde_derive::*;
+use serde::{de, ser};
 use std::cmp::Ordering;
-use std::convert::{TryFrom, TryInto};
 use std::hash::{Hash, Hasher};
 use std::mem;
 
@@ -32,8 +31,7 @@ pub enum Integer {
 }
 
 /// An opaque floating-point type which has a total ordering.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug, Clone, Copy)]
 pub enum OrderedFloat {
     /// Variant for an `f32`.
     F32(f32),
@@ -82,60 +80,9 @@ impl Hash for OrderedFloat {
     }
 }
 
-impl TryFrom<f32> for OrderedFloat {
-    type Error = Error;
-
-    fn try_from(v: f32) -> Result<Self, Self::Error> {
-        Ok(Self::F32(v))
-    }
-}
-
-impl TryFrom<f64> for OrderedFloat {
-    type Error = Error;
-
-    fn try_from(v: f64) -> Result<Self, Self::Error> {
-        Ok(Self::F64(v))
-    }
-}
-
-impl From<OrderedFloat> for FloatProxy {
-    fn from(ordered: OrderedFloat) -> Self {
-        match ordered {
-            OrderedFloat::F32(v) => FloatProxy::F32(v),
-            OrderedFloat::F64(v) => FloatProxy::F64(v),
-        }
-    }
-}
-
 /// A float serialization policy which rejects any attempt to serialize a float with an error.
-#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum RejectFloat {}
-
-impl TryFrom<f32> for RejectFloat {
-    type Error = Error;
-    fn try_from(_: f32) -> Result<Self, Self::Error> {
-        Err(Error::UnsupportedType("f32"))
-    }
-}
-
-impl TryFrom<f64> for RejectFloat {
-    type Error = Error;
-    fn try_from(_: f64) -> Result<Self, Self::Error> {
-        Err(Error::UnsupportedType("f64"))
-    }
-}
-
-impl From<RejectFloat> for FloatProxy {
-    fn from(this: RejectFloat) -> Self {
-        match this {}
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum FloatProxy {
-    F32(f32),
-    F64(f64),
-}
 
 /// A policy for handling floating point types in a `Key`.
 ///
@@ -146,30 +93,73 @@ pub enum FloatProxy {
 ///
 /// [`RejectFloat`]: RejectFloat
 /// [`OrderedFloat`]: OrderedFloat
-pub trait FloatPolicy:
-    TryFrom<f32, Error = Error>
-    + TryFrom<f64, Error = Error>
-    + Into<FloatProxy>
-    + Clone
-    + PartialEq
-    + Eq
-    + PartialOrd
-    + Ord
-    + Hash
-{
+pub trait FloatPolicy: Clone + PartialEq + Eq + PartialOrd + Ord + Hash {
+    /// Serialize an `f32`, possibly failing.
+    fn serialize_f32(value: f32) -> Result<Self, Error>;
+    /// Serialize an `f64`, possibly failing.
+    fn serialize_f64(value: f64) -> Result<Self, Error>;
+    /// Serialize some floating point type, possibly failing.
+    fn serialize_float<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer;
+    /// Deserialize some other type from this floating point type, possibly failing.
+    fn deserialize_float<'de, V>(&self, visitor: V) -> Result<V::Value, Error>
+    where
+        V: de::Visitor<'de>;
 }
 
-impl<T> FloatPolicy for T where
-    T: TryFrom<f32, Error = Error>
-        + TryFrom<f64, Error = Error>
-        + Into<FloatProxy>
-        + Clone
-        + PartialEq
-        + Eq
-        + PartialOrd
-        + Ord
-        + Hash
-{
+impl FloatPolicy for RejectFloat {
+    fn serialize_f32(_: f32) -> Result<Self, Error> {
+        Err(Error::UnsupportedType("f32"))
+    }
+
+    fn serialize_f64(_: f64) -> Result<Self, Error> {
+        Err(Error::UnsupportedType("f64"))
+    }
+
+    fn serialize_float<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        match *self {}
+    }
+
+    fn deserialize_float<'de, V>(&self, _visitor: V) -> Result<V::Value, Error>
+    where
+        V: de::Visitor<'de>,
+    {
+        match *self {}
+    }
+}
+
+impl FloatPolicy for OrderedFloat {
+    fn serialize_f32(value: f32) -> Result<Self, Error> {
+        Ok(Self::F32(value))
+    }
+
+    fn serialize_f64(value: f64) -> Result<Self, Error> {
+        Ok(Self::F64(value))
+    }
+
+    fn serialize_float<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        match *self {
+            Self::F32(v) => serializer.serialize_f32(v),
+            Self::F64(v) => serializer.serialize_f64(v),
+        }
+    }
+
+    fn deserialize_float<'de, V>(&self, visitor: V) -> Result<V::Value, Error>
+    where
+        V: de::Visitor<'de>,
+    {
+        match *self {
+            Self::F32(v) => visitor.visit_f32(v),
+            Self::F64(v) => visitor.visit_f64(v),
+        }
+    }
 }
 
 /// The central key type, which is an in-memory representation of all supported
@@ -242,18 +232,6 @@ macro_rules! impl_integer_from {
     };
 }
 
-macro_rules! impl_float_try_from {
-    ($variant:ident, $for_type:ty) => {
-        impl<Float: FloatPolicy> TryFrom<$for_type> for Key<Float> {
-            type Error = Error;
-
-            fn try_from(v: $for_type) -> Result<Key<Float>, Error> {
-                v.try_into().map(Key::Float)
-            }
-        }
-    };
-}
-
 macro_rules! impl_from {
     ($variant:path, $for_type:ty) => {
         impl<Float: FloatPolicy> From<$for_type> for Key<Float> {
@@ -274,9 +252,6 @@ impl_integer_from!(U16, u16);
 impl_integer_from!(U32, u32);
 impl_integer_from!(U64, u64);
 impl_integer_from!(U128, u128);
-
-impl_float_try_from!(F32, f32);
-impl_float_try_from!(F64, f64);
 
 impl_from!(Key::Bool, bool);
 impl_from!(Key::Bytes, Vec<u8>);
