@@ -83,3 +83,47 @@ impl FloatPolicy for OrderedFloat {
         }
     }
 }
+
+/// Serialize the given value to a [Key], with an [OrderedFloat] float policy.
+///
+/// # Examples
+///
+/// ```rust
+/// use serde_derive::{Deserialize, Serialize};
+/// use serde_hashkey::{from_key, to_key_with_ordered_float, OrderedFloat, Key};
+/// use std::collections::HashMap;
+///
+/// #[derive(Debug, PartialEq, Serialize, Deserialize)]
+/// struct Author {
+///     name: String,
+///     age: f32,
+/// }
+///
+/// #[derive(Debug, PartialEq, Serialize, Deserialize)]
+/// struct Book {
+///     title: String,
+///     author: Author,
+/// }
+///
+/// # fn main() -> serde_hashkey::Result<()> {
+/// let book = Book {
+///     title: String::from("Birds of a feather"),
+///     author: Author {
+///         name: String::from("Noah"),
+///         age: 42.5,
+///     },
+/// };
+///
+/// let key = to_key_with_ordered_float(&book)?;
+/// let book2 = from_key(&key)?;
+///
+/// assert_eq!(book, book2);
+/// # Ok(())
+/// # }
+/// ```
+pub fn to_key_with_ordered_float<T>(value: &T) -> Result<crate::Key<OrderedFloat>, Error>
+where
+    T: ser::Serialize,
+{
+    crate::ser::to_key_with_policy::<T, OrderedFloat>(value)
+}

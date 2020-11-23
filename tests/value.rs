@@ -1,7 +1,9 @@
 #![cfg(feature = "ordered-float")]
 
 use serde_derive::{Deserialize, Serialize};
-use serde_hashkey::{from_key, to_key, to_key_with_policy, Error, Integer, Key, OrderedFloat};
+use serde_hashkey::{
+    from_key, to_key, to_key_with_ordered_float, Error, Integer, Key, OrderedFloat,
+};
 use std::collections::BTreeMap;
 
 #[test]
@@ -41,11 +43,8 @@ fn test_enum() -> Result<(), Error> {
         other => panic!("unexpected: {:?}", other),
     }
 
-    assert_eq!(foo, from_key::<Foo>(&value)?);
-    assert_eq!(
-        Foo::Operation3,
-        from_key::<Foo>(&to_key(&Foo::Operation3)?)?
-    );
+    assert_eq!(foo, from_key(&value)?);
+    assert_eq!(Foo::Operation3, from_key(&to_key(&Foo::Operation3)?)?);
     return Ok(());
 
     #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -96,11 +95,11 @@ fn deny_floats_by_default() {
     assert_eq!(to_key(&0f32), Err(Error::UnsupportedType("f32")));
     assert_eq!(to_key(&0f64), Err(Error::UnsupportedType("f64")));
     assert_eq!(
-        to_key_with_policy::<OrderedFloat, _>(&0f32),
+        to_key_with_ordered_float(&0f32),
         Ok(Key::Float(OrderedFloat::F32(0f32)))
     );
     assert_eq!(
-        to_key_with_policy::<OrderedFloat, _>(&0f64),
+        to_key_with_ordered_float(&0f64),
         Ok(Key::Float(OrderedFloat::F64(0f64)))
     );
 }

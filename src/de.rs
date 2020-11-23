@@ -45,20 +45,12 @@ use crate::key::{Integer, Key};
 /// # Ok(())
 /// # }
 /// ```
-pub fn from_key<T>(value: &Key) -> Result<T, crate::error::Error>
-where
-    T: de::DeserializeOwned,
-{
-    T::deserialize(Deserializer::new(&value))
-}
-
-/// Deserialize the given type from a [Key], with a non-default [`FloatPolicy`](key::FloatPolicy).
 ///
-/// # Examples
+/// Using a non-standard float policy:
 ///
 /// ```rust
 /// use serde_derive::{Deserialize, Serialize};
-/// use serde_hashkey::{from_key_with_policy, to_key_with_policy, OrderedFloat, Key};
+/// use serde_hashkey::{from_key, to_key_with_ordered_float, OrderedFloat, Key};
 /// use std::collections::HashMap;
 ///
 /// #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -82,17 +74,17 @@ where
 ///     },
 /// };
 ///
-/// let key = to_key_with_policy::<OrderedFloat, _>(&book)?;
-/// let book2 = from_key_with_policy::<OrderedFloat, _>(&key)?;
+/// let key = to_key_with_ordered_float(&book)?;
+/// let book2 = from_key(&key)?;
 ///
 /// assert_eq!(book, book2);
 /// # Ok(())
 /// # }
 /// ```
-pub fn from_key_with_policy<Float, T>(value: &Key<Float>) -> Result<T, crate::error::Error>
+pub fn from_key<T, F>(value: &Key<F>) -> Result<T, crate::error::Error>
 where
-    Float: FloatPolicy,
     T: de::DeserializeOwned,
+    F: FloatPolicy,
 {
     T::deserialize(Deserializer::new(&value))
 }

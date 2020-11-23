@@ -44,54 +44,17 @@ use crate::key::{Integer, Key};
 /// # Ok(())
 /// # }
 /// ```
-pub fn to_key<T>(value: &T) -> Result<Key, Error>
+pub fn to_key<T>(value: &T) -> Result<Key<crate::RejectFloat>, Error>
 where
     T: ser::Serialize,
 {
-    value.serialize(Serializer(PhantomData))
+    to_key_with_policy::<T, crate::RejectFloat>(value)
 }
 
-/// Serialize the given value to a [Key], with a non-default [`FloatPolicy`](key::FloatPolicy).
-///
-/// # Examples
-///
-/// ```rust
-/// use serde_derive::{Deserialize, Serialize};
-/// use serde_hashkey::{from_key_with_policy, to_key_with_policy, OrderedFloat, Key};
-/// use std::collections::HashMap;
-///
-/// #[derive(Debug, PartialEq, Serialize, Deserialize)]
-/// struct Author {
-///     name: String,
-///     age: f32,
-/// }
-///
-/// #[derive(Debug, PartialEq, Serialize, Deserialize)]
-/// struct Book {
-///     title: String,
-///     author: Author,
-/// }
-///
-/// # fn main() -> serde_hashkey::Result<()> {
-/// let book = Book {
-///     title: String::from("Birds of a feather"),
-///     author: Author {
-///         name: String::from("Noah"),
-///         age: 42.5,
-///     },
-/// };
-///
-/// let key = to_key_with_policy::<OrderedFloat, _>(&book)?;
-/// let book2 = from_key_with_policy::<OrderedFloat, _>(&key)?;
-///
-/// assert_eq!(book, book2);
-/// # Ok(())
-/// # }
-/// ```
-pub fn to_key_with_policy<Float, T>(value: &T) -> Result<Key<Float>, Error>
+pub(crate) fn to_key_with_policy<T, F>(value: &T) -> Result<Key<F>, Error>
 where
-    Float: FloatPolicy,
     T: ser::Serialize,
+    F: FloatPolicy,
 {
     value.serialize(Serializer(PhantomData))
 }

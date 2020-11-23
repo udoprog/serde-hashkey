@@ -1,11 +1,18 @@
 #[cfg(feature = "ordered-float")]
-pub use self::ordered_float::OrderedFloat;
+pub use self::ordered_float::{to_key_with_ordered_float, OrderedFloat};
 use crate::error::Error;
 use serde::{de, ser};
 use std::hash::Hash;
 
 #[cfg(feature = "ordered-float")]
 mod ordered_float;
+
+// NB: we completely seal the FloatPolicy to prevent external implementations.
+mod private {
+    pub trait Sealed {}
+
+    impl<T> Sealed for T where T: super::FloatPolicy {}
+}
 
 /// A policy for handling floating point types in a `Key`.
 ///
@@ -16,7 +23,9 @@ mod ordered_float;
 ///
 /// [`RejectFloat`]: RejectFloat
 /// [`OrderedFloat`]: OrderedFloat
-pub trait FloatPolicy: Clone + PartialEq + Eq + PartialOrd + Ord + Hash {
+pub trait FloatPolicy:
+    self::private::Sealed + Clone + PartialEq + Eq + PartialOrd + Ord + Hash
+{
     /// Serialize an `f32`, possibly failing.
     fn serialize_f32(value: f32) -> Result<Self, Error>;
 
