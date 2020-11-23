@@ -11,9 +11,13 @@
 //! Serde-based in-memory key serialization.
 //!
 //! This allows any serde-serializable type to be converted into a value which
-//! implements `PartialEq`, `Eq`, `ParialOrd`, `Ord`, and `Hash`. The only
-//! limitation is that the type can't serialize floating point values, since
-//! these are not [totally ordered nor hashable] by default.
+//! implements `PartialEq`, `Eq`, `ParialOrd`, `Ord`, and `Hash`. This can include
+//! floating point types such as `f32` and `f64` depending on the
+//! [FloatPolicy] used with the [Key] type. By
+//! default, attempts to serialize `f32` and `f64` will cause an error; this
+//! is because `f32` and `f64` are neither [totally ordered nor hashable] by default.
+//! To enable the [Key] type to use `f32` and `f64`, parameterize
+//! it with the [OrderedFloat] policy, like so: `Key<OrderedFloat>`.
 //!
 //! [Key] is useful because it allows for a form of type-erasure. Let's say you
 //! want to build a generic in-memory key-value store where you want to store
@@ -73,6 +77,9 @@
 //!
 //! [totally ordered nor hashable]: https://internals.rust-lang.org/t/f32-f64-should-implement-hash/5436
 //! [Key]: https://docs.rs/serde-hashkey/0/serde_hashkey/enum.Key.html
+//! [FloatPolicy]: https://docs.rs/serde-hashkey/0/serde_hashkey/trait.FloatPolicy.html
+//! [RejectFloat]: https://docs.rs/serde-hashkey/0/serde_hashkey/enum.RejectFloat.html
+//! [OrderedFloat]: https://docs.rs/serde-hashkey/0/serde_hashkey/enum.OrderedFloat.html
 
 #![deny(missing_docs)]
 
@@ -82,10 +89,10 @@ mod key;
 mod ser;
 
 #[doc(inline)]
-pub use crate::de::from_key;
+pub use crate::de::{from_key, from_key_with_policy};
 #[doc(inline)]
 pub use crate::error::{Error, Result};
 #[doc(inline)]
-pub use crate::key::{Integer, Key};
+pub use crate::key::{FloatPolicy, Integer, Key, OrderedFloat, RejectFloat};
 #[doc(inline)]
-pub use crate::ser::to_key;
+pub use crate::ser::{to_key, to_key_with_policy};

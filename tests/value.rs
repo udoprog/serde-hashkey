@@ -1,5 +1,5 @@
 use serde_derive::{Deserialize, Serialize};
-use serde_hashkey::{from_key, to_key, Error, Integer, Key};
+use serde_hashkey::{from_key, to_key, to_key_with_policy, Error, Integer, Key, OrderedFloat};
 use std::collections::BTreeMap;
 
 #[test]
@@ -87,4 +87,18 @@ fn test_normalize() {
     assert_ne!(a, b);
     assert_eq!(a, b.clone().normalize());
     assert_eq!(a.clone().normalize(), b.clone().normalize());
+}
+
+#[test]
+fn deny_floats_by_default() {
+    assert_eq!(to_key(&0f32), Err(Error::UnsupportedType("f32")));
+    assert_eq!(to_key(&0f64), Err(Error::UnsupportedType("f64")));
+    assert_eq!(
+        to_key_with_policy::<OrderedFloat, _>(&0f32),
+        Ok(Key::Float(OrderedFloat::F32(0f32)))
+    );
+    assert_eq!(
+        to_key_with_policy::<OrderedFloat, _>(&0f64),
+        Ok(Key::Float(OrderedFloat::F64(0f64)))
+    );
 }
