@@ -89,25 +89,37 @@ where
     T::deserialize(Deserializer::new(&value))
 }
 
-impl<'de, Float: FloatPolicy> IntoDeserializer<'de, Error> for &'de Key<Float> {
-    type Deserializer = Deserializer<'de, Float>;
+impl<'de, F> IntoDeserializer<'de, Error> for &'de Key<F>
+where
+    F: FloatPolicy,
+{
+    type Deserializer = Deserializer<'de, F>;
 
     fn into_deserializer(self) -> Self::Deserializer {
         Deserializer::new(self)
     }
 }
 
-pub struct Deserializer<'de, Float: FloatPolicy> {
-    value: &'de Key<Float>,
+pub struct Deserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    value: &'de Key<F>,
 }
 
-impl<'de, Float: FloatPolicy> Deserializer<'de, Float> {
-    pub fn new(value: &'de Key<Float>) -> Self {
+impl<'de, F> Deserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    pub fn new(value: &'de Key<F>) -> Self {
         Self { value }
     }
 }
 
-impl<'de, Float: FloatPolicy> de::Deserializer<'de> for Deserializer<'de, Float> {
+impl<'de, F> de::Deserializer<'de> for Deserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
 
     #[inline]
@@ -204,14 +216,20 @@ impl<'de, Float: FloatPolicy> de::Deserializer<'de> for Deserializer<'de, Float>
     }
 }
 
-struct EnumDeserializer<'de, Float: FloatPolicy> {
-    variant: &'de Key<Float>,
-    value: Option<&'de Key<Float>>,
+struct EnumDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    variant: &'de Key<F>,
+    value: Option<&'de Key<F>>,
 }
 
-impl<'de, Float: FloatPolicy> de::EnumAccess<'de> for EnumDeserializer<'de, Float> {
+impl<'de, F> de::EnumAccess<'de> for EnumDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
-    type Variant = VariantDeserializer<'de, Float>;
+    type Variant = VariantDeserializer<'de, F>;
 
     fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant), Error>
     where
@@ -223,11 +241,17 @@ impl<'de, Float: FloatPolicy> de::EnumAccess<'de> for EnumDeserializer<'de, Floa
     }
 }
 
-struct VariantDeserializer<'de, Float: FloatPolicy> {
-    value: Option<&'de Key<Float>>,
+struct VariantDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    value: Option<&'de Key<F>>,
 }
 
-impl<'de, Float: FloatPolicy> de::VariantAccess<'de> for VariantDeserializer<'de, Float> {
+impl<'de, F> de::VariantAccess<'de> for VariantDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
 
     fn unit_variant(self) -> Result<(), Error> {
@@ -278,17 +302,26 @@ impl<'de, Float: FloatPolicy> de::VariantAccess<'de> for VariantDeserializer<'de
     }
 }
 
-struct SeqDeserializer<'de, Float: FloatPolicy> {
-    values: &'de [Key<Float>],
+struct SeqDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    values: &'de [Key<F>],
 }
 
-impl<'de, Float: FloatPolicy> SeqDeserializer<'de, Float> {
-    pub fn new(values: &'de [Key<Float>]) -> Self {
+impl<'de, F> SeqDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    pub fn new(values: &'de [Key<F>]) -> Self {
         Self { values }
     }
 }
 
-impl<'de, Float: FloatPolicy> serde::Deserializer<'de> for SeqDeserializer<'de, Float> {
+impl<'de, F> serde::Deserializer<'de> for SeqDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
 
     #[inline]
@@ -318,7 +351,10 @@ impl<'de, Float: FloatPolicy> serde::Deserializer<'de> for SeqDeserializer<'de, 
     }
 }
 
-impl<'de, Float: FloatPolicy> de::SeqAccess<'de> for SeqDeserializer<'de, Float> {
+impl<'de, F> de::SeqAccess<'de> for SeqDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
@@ -336,18 +372,27 @@ impl<'de, Float: FloatPolicy> de::SeqAccess<'de> for SeqDeserializer<'de, Float>
     }
 }
 
-struct MapDeserializer<'de, Float: FloatPolicy> {
-    map: &'de [(Key<Float>, Key<Float>)],
-    value: Option<&'de Key<Float>>,
+struct MapDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    map: &'de [(Key<F>, Key<F>)],
+    value: Option<&'de Key<F>>,
 }
 
-impl<'de, Float: FloatPolicy> MapDeserializer<'de, Float> {
-    pub fn new(map: &'de [(Key<Float>, Key<Float>)]) -> Self {
+impl<'de, F> MapDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    pub fn new(map: &'de [(Key<F>, Key<F>)]) -> Self {
         Self { map, value: None }
     }
 }
 
-impl<'de, Float: FloatPolicy> serde::Deserializer<'de> for MapDeserializer<'de, Float> {
+impl<'de, F> serde::Deserializer<'de> for MapDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
 
     #[inline]
@@ -365,7 +410,10 @@ impl<'de, Float: FloatPolicy> serde::Deserializer<'de> for MapDeserializer<'de, 
     }
 }
 
-impl<'de, Float: FloatPolicy> de::MapAccess<'de> for MapDeserializer<'de, Float> {
+impl<'de, F> de::MapAccess<'de> for MapDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
@@ -398,16 +446,24 @@ impl<'de, Float: FloatPolicy> de::MapAccess<'de> for MapDeserializer<'de, Float>
     }
 }
 
-impl<'de, Float: FloatPolicy> de::Deserialize<'de> for Key<Float> {
+impl<'de, F> de::Deserialize<'de> for Key<F>
+where
+    F: FloatPolicy,
+{
     #[inline]
-    fn deserialize<D>(deserializer: D) -> Result<Key<Float>, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<Key<F>, D::Error>
     where
         D: de::Deserializer<'de>,
     {
-        struct ValueVisitor<Float: FloatPolicy>(PhantomData<Float>);
+        struct ValueVisitor<F>(PhantomData<F>)
+        where
+            F: FloatPolicy;
 
-        impl<'de, Float: FloatPolicy> de::Visitor<'de> for ValueVisitor<Float> {
-            type Value = Key<Float>;
+        impl<'de, F> de::Visitor<'de> for ValueVisitor<F>
+        where
+            F: FloatPolicy,
+        {
+            type Value = Key<F>;
 
             fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
                 fmt.write_str("any valid key")
@@ -578,6 +634,6 @@ impl<'de, Float: FloatPolicy> de::Deserialize<'de> for Key<Float> {
             }
         }
 
-        deserializer.deserialize_any(ValueVisitor::<Float>(PhantomData))
+        deserializer.deserialize_any(ValueVisitor::<F>(PhantomData))
     }
 }

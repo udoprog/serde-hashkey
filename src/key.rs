@@ -38,7 +38,10 @@ pub enum Integer {
 /// [from_key]: crate::from_key
 /// [to_key]: crate::to_key
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Key<Float: FloatPolicy = RejectFloat> {
+pub enum Key<F = RejectFloat>
+where
+    F: FloatPolicy,
+{
     /// A unit value.
     Unit,
     /// A boolean value.
@@ -46,15 +49,15 @@ pub enum Key<Float: FloatPolicy = RejectFloat> {
     /// An integer.
     Integer(Integer),
     /// A floating-point number.
-    Float(Float),
+    Float(F),
     /// A byte array.
     Bytes(Vec<u8>),
     /// A string.
     String(String),
     /// A vector.
-    Vec(Vec<Key<Float>>),
+    Vec(Vec<Key<F>>),
     /// A map.
-    Map(Vec<(Key<Float>, Key<Float>)>),
+    Map(Vec<(Key<F>, Key<F>)>),
 }
 
 impl Default for Key {
@@ -90,8 +93,11 @@ impl Key {
 
 macro_rules! impl_integer_from {
     ($variant:ident, $for_type:ty) => {
-        impl<Float: FloatPolicy> From<$for_type> for Key<Float> {
-            fn from(v: $for_type) -> Key<Float> {
+        impl<F> From<$for_type> for Key<F>
+        where
+            F: FloatPolicy,
+        {
+            fn from(v: $for_type) -> Key<F> {
                 Key::Integer(Integer::$variant(v))
             }
         }
@@ -100,8 +106,11 @@ macro_rules! impl_integer_from {
 
 macro_rules! impl_from {
     ($variant:path, $for_type:ty) => {
-        impl<Float: FloatPolicy> From<$for_type> for Key<Float> {
-            fn from(v: $for_type) -> Key<Float> {
+        impl<F> From<$for_type> for Key<F>
+        where
+            F: FloatPolicy,
+        {
+            fn from(v: $for_type) -> Key<F> {
                 $variant(v.into())
             }
         }
@@ -122,8 +131,8 @@ impl_integer_from!(U128, u128);
 impl_from!(Key::Bool, bool);
 impl_from!(Key::Bytes, Vec<u8>);
 impl_from!(Key::String, String);
-impl_from!(Key::Vec, Vec<Key<Float>>);
-impl_from!(Key::Map, Vec<(Key<Float>, Key<Float>)>);
+impl_from!(Key::Vec, Vec<Key<F>>);
+impl_from!(Key::Map, Vec<(Key<F>, Key<F>)>);
 
 #[cfg(test)]
 mod tests {
