@@ -1,12 +1,10 @@
 //! Deserialization for serde-hashkey.
 
 use serde::de::{self, IntoDeserializer};
-use std::fmt;
-use std::marker::PhantomData;
 
 use crate::error::Error;
-use crate::float::FloatPolicy;
-use crate::key::{Integer, Key};
+use crate::float::{FloatPolicy, FloatRepr};
+use crate::key::{Float, Integer, Key};
 
 /// Deserialize the given type from a [Key].
 ///
@@ -45,20 +43,12 @@ use crate::key::{Integer, Key};
 /// # Ok(())
 /// # }
 /// ```
-pub fn from_key<T>(value: &Key) -> Result<T, crate::error::Error>
-where
-    T: de::DeserializeOwned,
-{
-    T::deserialize(Deserializer::new(&value))
-}
-
-/// Deserialize the given type from a [Key], with a non-default [`FloatPolicy`](key::FloatPolicy).
 ///
-/// # Examples
+/// Using a non-standard float policy:
 ///
 /// ```rust
 /// use serde_derive::{Deserialize, Serialize};
-/// use serde_hashkey::{from_key_with_policy, to_key_with_policy, OrderedFloat, Key};
+/// use serde_hashkey::{from_key, to_key_with_ordered_float, OrderedFloat, Key};
 /// use std::collections::HashMap;
 ///
 /// #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -82,40 +72,52 @@ where
 ///     },
 /// };
 ///
-/// let key = to_key_with_policy::<OrderedFloat, _>(&book)?;
-/// let book2 = from_key_with_policy::<OrderedFloat, _>(&key)?;
+/// let key = to_key_with_ordered_float(&book)?;
+/// let book2 = from_key(&key)?;
 ///
 /// assert_eq!(book, book2);
 /// # Ok(())
 /// # }
 /// ```
-pub fn from_key_with_policy<Float, T>(value: &Key<Float>) -> Result<T, crate::error::Error>
+pub fn from_key<T, F>(value: &Key<F>) -> Result<T, crate::error::Error>
 where
-    Float: FloatPolicy,
     T: de::DeserializeOwned,
+    F: FloatPolicy,
 {
     T::deserialize(Deserializer::new(&value))
 }
 
-impl<'de, Float: FloatPolicy> IntoDeserializer<'de, Error> for &'de Key<Float> {
-    type Deserializer = Deserializer<'de, Float>;
+impl<'de, F> IntoDeserializer<'de, Error> for &'de Key<F>
+where
+    F: FloatPolicy,
+{
+    type Deserializer = Deserializer<'de, F>;
 
     fn into_deserializer(self) -> Self::Deserializer {
         Deserializer::new(self)
     }
 }
 
-pub struct Deserializer<'de, Float: FloatPolicy> {
-    value: &'de Key<Float>,
+pub struct Deserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    value: &'de Key<F>,
 }
 
-impl<'de, Float: FloatPolicy> Deserializer<'de, Float> {
-    pub fn new(value: &'de Key<Float>) -> Self {
+impl<'de, F> Deserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    pub fn new(value: &'de Key<F>) -> Self {
         Self { value }
     }
 }
 
-impl<'de, Float: FloatPolicy> de::Deserializer<'de> for Deserializer<'de, Float> {
+impl<'de, F> de::Deserializer<'de> for Deserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
 
     #[inline]
@@ -136,7 +138,8 @@ impl<'de, Float: FloatPolicy> de::Deserializer<'de> for Deserializer<'de, Float>
             Key::Integer(Integer::I32(v)) => visitor.visit_i32(*v),
             Key::Integer(Integer::I64(v)) => visitor.visit_i64(*v),
             Key::Integer(Integer::I128(v)) => visitor.visit_i128(*v),
-            Key::Float(float) => float.deserialize_float(visitor),
+            Key::Float(Float::F32(float)) => <F::F32 as FloatRepr<f32>>::visit(float, visitor),
+            Key::Float(Float::F64(float)) => <F::F64 as FloatRepr<f64>>::visit(float, visitor),
             Key::String(s) => visitor.visit_str(s),
             Key::Vec(array) => visitor.visit_seq(SeqDeserializer::new(array)),
             Key::Map(m) => visitor.visit_map(MapDeserializer::new(m)),
@@ -212,14 +215,20 @@ impl<'de, Float: FloatPolicy> de::Deserializer<'de> for Deserializer<'de, Float>
     }
 }
 
-struct EnumDeserializer<'de, Float: FloatPolicy> {
-    variant: &'de Key<Float>,
-    value: Option<&'de Key<Float>>,
+struct EnumDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    variant: &'de Key<F>,
+    value: Option<&'de Key<F>>,
 }
 
-impl<'de, Float: FloatPolicy> de::EnumAccess<'de> for EnumDeserializer<'de, Float> {
+impl<'de, F> de::EnumAccess<'de> for EnumDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
-    type Variant = VariantDeserializer<'de, Float>;
+    type Variant = VariantDeserializer<'de, F>;
 
     fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant), Error>
     where
@@ -231,11 +240,17 @@ impl<'de, Float: FloatPolicy> de::EnumAccess<'de> for EnumDeserializer<'de, Floa
     }
 }
 
-struct VariantDeserializer<'de, Float: FloatPolicy> {
-    value: Option<&'de Key<Float>>,
+struct VariantDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    value: Option<&'de Key<F>>,
 }
 
-impl<'de, Float: FloatPolicy> de::VariantAccess<'de> for VariantDeserializer<'de, Float> {
+impl<'de, F> de::VariantAccess<'de> for VariantDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
 
     fn unit_variant(self) -> Result<(), Error> {
@@ -286,17 +301,26 @@ impl<'de, Float: FloatPolicy> de::VariantAccess<'de> for VariantDeserializer<'de
     }
 }
 
-struct SeqDeserializer<'de, Float: FloatPolicy> {
-    values: &'de [Key<Float>],
+struct SeqDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    values: &'de [Key<F>],
 }
 
-impl<'de, Float: FloatPolicy> SeqDeserializer<'de, Float> {
-    pub fn new(values: &'de [Key<Float>]) -> Self {
+impl<'de, F> SeqDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    pub fn new(values: &'de [Key<F>]) -> Self {
         Self { values }
     }
 }
 
-impl<'de, Float: FloatPolicy> serde::Deserializer<'de> for SeqDeserializer<'de, Float> {
+impl<'de, F> serde::Deserializer<'de> for SeqDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
 
     #[inline]
@@ -312,7 +336,7 @@ impl<'de, Float: FloatPolicy> serde::Deserializer<'de> for SeqDeserializer<'de, 
 
         let ret = visitor.visit_seq(&mut self)?;
 
-        if self.values.len() == 0 {
+        if self.values.is_empty() {
             return Ok(ret);
         }
 
@@ -326,7 +350,10 @@ impl<'de, Float: FloatPolicy> serde::Deserializer<'de> for SeqDeserializer<'de, 
     }
 }
 
-impl<'de, Float: FloatPolicy> de::SeqAccess<'de> for SeqDeserializer<'de, Float> {
+impl<'de, F> de::SeqAccess<'de> for SeqDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
@@ -344,18 +371,27 @@ impl<'de, Float: FloatPolicy> de::SeqAccess<'de> for SeqDeserializer<'de, Float>
     }
 }
 
-struct MapDeserializer<'de, Float: FloatPolicy> {
-    map: &'de [(Key<Float>, Key<Float>)],
-    value: Option<&'de Key<Float>>,
+struct MapDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    map: &'de [(Key<F>, Key<F>)],
+    value: Option<&'de Key<F>>,
 }
 
-impl<'de, Float: FloatPolicy> MapDeserializer<'de, Float> {
-    pub fn new(map: &'de [(Key<Float>, Key<Float>)]) -> Self {
+impl<'de, F> MapDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
+    pub fn new(map: &'de [(Key<F>, Key<F>)]) -> Self {
         Self { map, value: None }
     }
 }
 
-impl<'de, Float: FloatPolicy> serde::Deserializer<'de> for MapDeserializer<'de, Float> {
+impl<'de, F> serde::Deserializer<'de> for MapDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
 
     #[inline]
@@ -373,7 +409,10 @@ impl<'de, Float: FloatPolicy> serde::Deserializer<'de> for MapDeserializer<'de, 
     }
 }
 
-impl<'de, Float: FloatPolicy> de::MapAccess<'de> for MapDeserializer<'de, Float> {
+impl<'de, F> de::MapAccess<'de> for MapDeserializer<'de, F>
+where
+    F: FloatPolicy,
+{
     type Error = Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
@@ -403,189 +442,5 @@ impl<'de, Float: FloatPolicy> de::MapAccess<'de> for MapDeserializer<'de, Float>
         };
 
         seed.deserialize(Deserializer::new(value))
-    }
-}
-
-impl<'de, Float: FloatPolicy> de::Deserialize<'de> for Key<Float> {
-    #[inline]
-    fn deserialize<D>(deserializer: D) -> Result<Key<Float>, D::Error>
-    where
-        D: de::Deserializer<'de>,
-    {
-        struct ValueVisitor<Float: FloatPolicy>(PhantomData<Float>);
-
-        impl<'de, Float: FloatPolicy> de::Visitor<'de> for ValueVisitor<Float> {
-            type Value = Key<Float>;
-
-            fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-                fmt.write_str("any valid key")
-            }
-
-            #[inline]
-            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                self.visit_string(String::from(value))
-            }
-
-            #[inline]
-            fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(Key::String(value))
-            }
-
-            #[inline]
-            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                self.visit_byte_buf(v.to_owned())
-            }
-
-            #[inline]
-            fn visit_byte_buf<E>(self, v: Vec<u8>) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(Key::Bytes(v))
-            }
-
-            #[inline]
-            fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(Key::Bool(v))
-            }
-
-            #[inline]
-            fn visit_none<E>(self) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                self.visit_unit()
-            }
-
-            #[inline]
-            fn visit_unit<E>(self) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(Key::Unit)
-            }
-
-            #[inline]
-            fn visit_seq<V>(self, mut visitor: V) -> Result<Self::Value, V::Error>
-            where
-                V: de::SeqAccess<'de>,
-            {
-                let mut vec = Vec::new();
-
-                while let Some(elem) = visitor.next_element()? {
-                    vec.push(elem);
-                }
-
-                Ok(Key::Vec(vec))
-            }
-
-            #[inline]
-            fn visit_map<V>(self, mut visitor: V) -> Result<Self::Value, V::Error>
-            where
-                V: de::MapAccess<'de>,
-            {
-                let mut values = Vec::new();
-
-                while let Some((key, value)) = visitor.next_entry()? {
-                    values.insert(key, value);
-                }
-
-                Ok(Key::Map(values))
-            }
-        }
-
-        deserializer.deserialize_any(ValueVisitor::<Float>(PhantomData))
     }
 }

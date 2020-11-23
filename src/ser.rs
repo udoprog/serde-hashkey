@@ -4,8 +4,8 @@ use crate::error::Error;
 use serde::ser;
 use std::marker::PhantomData;
 
-use crate::float::FloatPolicy;
-use crate::key::{Integer, Key};
+use crate::float::{FloatPolicy, FloatRepr, RejectFloatPolicy};
+use crate::key::{Float, Key};
 
 /// Serialize the given value to a [Key].
 ///
@@ -44,198 +44,132 @@ use crate::key::{Integer, Key};
 /// # Ok(())
 /// # }
 /// ```
-pub fn to_key<T>(value: &T) -> Result<Key, Error>
+pub fn to_key<T>(value: &T) -> Result<Key<RejectFloatPolicy>, Error>
 where
     T: ser::Serialize,
+{
+    to_key_with_policy::<T, RejectFloatPolicy>(value)
+}
+
+/// Internal helper to serialize a value with the given policy.
+pub(crate) fn to_key_with_policy<T, F>(value: &T) -> Result<Key<F>, Error>
+where
+    T: ser::Serialize,
+    F: FloatPolicy,
 {
     value.serialize(Serializer(PhantomData))
 }
 
-/// Serialize the given value to a [Key], with a non-default [`FloatPolicy`](key::FloatPolicy).
-///
-/// # Examples
-///
-/// ```rust
-/// use serde_derive::{Deserialize, Serialize};
-/// use serde_hashkey::{from_key_with_policy, to_key_with_policy, OrderedFloat, Key};
-/// use std::collections::HashMap;
-///
-/// #[derive(Debug, PartialEq, Serialize, Deserialize)]
-/// struct Author {
-///     name: String,
-///     age: f32,
-/// }
-///
-/// #[derive(Debug, PartialEq, Serialize, Deserialize)]
-/// struct Book {
-///     title: String,
-///     author: Author,
-/// }
-///
-/// # fn main() -> serde_hashkey::Result<()> {
-/// let book = Book {
-///     title: String::from("Birds of a feather"),
-///     author: Author {
-///         name: String::from("Noah"),
-///         age: 42.5,
-///     },
-/// };
-///
-/// let key = to_key_with_policy::<OrderedFloat, _>(&book)?;
-/// let book2 = from_key_with_policy::<OrderedFloat, _>(&key)?;
-///
-/// assert_eq!(book, book2);
-/// # Ok(())
-/// # }
-/// ```
-pub fn to_key_with_policy<Float, T>(value: &T) -> Result<Key<Float>, Error>
+struct Serializer<F>(PhantomData<F>)
 where
-    Float: FloatPolicy,
-    T: ser::Serialize,
+    F: FloatPolicy;
+
+impl<F> ser::Serializer for Serializer<F>
+where
+    F: FloatPolicy,
 {
-    value.serialize(Serializer(PhantomData))
-}
-
-impl<Float: FloatPolicy> ser::Serialize for Key<Float> {
-    #[inline]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: ser::Serializer,
-    {
-        match self {
-            Key::Unit => serializer.serialize_unit(),
-            Key::Integer(Integer::U8(v)) => serializer.serialize_u8(*v),
-            Key::Integer(Integer::U16(v)) => serializer.serialize_u16(*v),
-            Key::Integer(Integer::U32(v)) => serializer.serialize_u32(*v),
-            Key::Integer(Integer::U64(v)) => serializer.serialize_u64(*v),
-            Key::Integer(Integer::U128(v)) => serializer.serialize_u128(*v),
-            Key::Integer(Integer::I8(v)) => serializer.serialize_i8(*v),
-            Key::Integer(Integer::I16(v)) => serializer.serialize_i16(*v),
-            Key::Integer(Integer::I32(v)) => serializer.serialize_i32(*v),
-            Key::Integer(Integer::I64(v)) => serializer.serialize_i64(*v),
-            Key::Integer(Integer::I128(v)) => serializer.serialize_i128(*v),
-            Key::Float(float) => float.serialize_float(serializer),
-            Key::Bytes(v) => serializer.serialize_bytes(&v),
-            Key::String(v) => serializer.serialize_str(&v),
-            Key::Vec(v) => v.serialize(serializer),
-            Key::Map(m) => {
-                use self::ser::SerializeMap as _;
-
-                let mut map = serializer.serialize_map(Some(m.len()))?;
-
-                for (k, v) in m {
-                    map.serialize_key(k)?;
-                    map.serialize_value(v)?;
-                }
-
-                map.end()
-            }
-            Key::Bool(v) => serializer.serialize_bool(*v),
-        }
-    }
-}
-
-struct Serializer<Float: FloatPolicy>(PhantomData<Float>);
-
-impl<Float: FloatPolicy> ser::Serializer for Serializer<Float> {
-    type Ok = Key<Float>;
+    type Ok = Key<F>;
     type Error = Error;
 
-    type SerializeSeq = SerializeVec<Float>;
-    type SerializeTuple = SerializeVec<Float>;
-    type SerializeTupleStruct = SerializeVec<Float>;
-    type SerializeTupleVariant = SerializeTupleVariant<Float>;
-    type SerializeMap = SerializeMap<Float>;
-    type SerializeStruct = SerializeMap<Float>;
-    type SerializeStructVariant = SerializeStructVariant<Float>;
+    type SerializeSeq = SerializeVec<F>;
+    type SerializeTuple = SerializeVec<F>;
+    type SerializeTupleStruct = SerializeVec<F>;
+    type SerializeTupleVariant = SerializeTupleVariant<F>;
+    type SerializeMap = SerializeMap<F>;
+    type SerializeStruct = SerializeMap<F>;
+    type SerializeStructVariant = SerializeStructVariant<F>;
 
     #[inline]
-    fn serialize_bool(self, value: bool) -> Result<Key<Float>, Error> {
+    fn serialize_bool(self, value: bool) -> Result<Key<F>, Error> {
         Ok(Key::Bool(value))
     }
 
     #[inline]
-    fn serialize_i8(self, value: i8) -> Result<Key<Float>, Error> {
+    fn serialize_i8(self, value: i8) -> Result<Key<F>, Error> {
         Ok(value.into())
     }
 
     #[inline]
-    fn serialize_i16(self, value: i16) -> Result<Key<Float>, Error> {
+    fn serialize_i16(self, value: i16) -> Result<Key<F>, Error> {
         Ok(value.into())
     }
 
     #[inline]
-    fn serialize_i32(self, value: i32) -> Result<Key<Float>, Error> {
+    fn serialize_i32(self, value: i32) -> Result<Key<F>, Error> {
         Ok(value.into())
     }
 
     #[inline]
-    fn serialize_i64(self, value: i64) -> Result<Key<Float>, Error> {
+    fn serialize_i64(self, value: i64) -> Result<Key<F>, Error> {
         Ok(value.into())
     }
 
-    fn serialize_i128(self, value: i128) -> Result<Key<Float>, Error> {
-        Ok(value.into())
-    }
-
-    #[inline]
-    fn serialize_u8(self, value: u8) -> Result<Key<Float>, Error> {
+    fn serialize_i128(self, value: i128) -> Result<Key<F>, Error> {
         Ok(value.into())
     }
 
     #[inline]
-    fn serialize_u16(self, value: u16) -> Result<Key<Float>, Error> {
+    fn serialize_u8(self, value: u8) -> Result<Key<F>, Error> {
         Ok(value.into())
     }
 
     #[inline]
-    fn serialize_u32(self, value: u32) -> Result<Key<Float>, Error> {
+    fn serialize_u16(self, value: u16) -> Result<Key<F>, Error> {
         Ok(value.into())
     }
 
     #[inline]
-    fn serialize_u64(self, value: u64) -> Result<Key<Float>, Error> {
+    fn serialize_u32(self, value: u32) -> Result<Key<F>, Error> {
         Ok(value.into())
     }
 
     #[inline]
-    fn serialize_u128(self, value: u128) -> Result<Key<Float>, Error> {
+    fn serialize_u64(self, value: u64) -> Result<Key<F>, Error> {
         Ok(value.into())
     }
 
     #[inline]
-    fn serialize_f32(self, value: f32) -> Result<Key<Float>, Error> {
-        Float::serialize_f32(value).map(Key::Float)
+    fn serialize_u128(self, value: u128) -> Result<Key<F>, Error> {
+        Ok(value.into())
     }
 
     #[inline]
-    fn serialize_f64(self, value: f64) -> Result<Key<Float>, Error> {
-        Float::serialize_f64(value).map(Key::Float)
+    fn serialize_f32(self, value: f32) -> Result<Key<F>, Error> {
+        Ok(Key::Float(Float::F32(
+            <F::F32 as FloatRepr<f32>>::serialize(value)?,
+        )))
     }
 
     #[inline]
-    fn serialize_char(self, value: char) -> Result<Key<Float>, Error> {
+    fn serialize_f64(self, value: f64) -> Result<Key<F>, Error> {
+        Ok(Key::Float(Float::F64(
+            <F::F64 as FloatRepr<f64>>::serialize(value)?,
+        )))
+    }
+
+    #[inline]
+    fn serialize_char(self, value: char) -> Result<Key<F>, Error> {
         let mut s = String::new();
         s.push(value);
         self.serialize_str(&s)
     }
 
     #[inline]
-    fn serialize_str(self, value: &str) -> Result<Key<Float>, Error> {
+    fn serialize_str(self, value: &str) -> Result<Key<F>, Error> {
         Ok(Key::String(value.to_owned()))
     }
 
-    fn serialize_bytes(self, value: &[u8]) -> Result<Key<Float>, Error> {
+    fn serialize_bytes(self, value: &[u8]) -> Result<Key<F>, Error> {
         Ok(Key::Bytes(value.to_vec()))
     }
 
     #[inline]
-    fn serialize_unit(self) -> Result<Key<Float>, Error> {
+    fn serialize_unit(self) -> Result<Key<F>, Error> {
         Ok(Key::Unit)
     }
 
     #[inline]
-    fn serialize_unit_struct(self, _name: &'static str) -> Result<Key<Float>, Error> {
+    fn serialize_unit_struct(self, _name: &'static str) -> Result<Key<F>, Error> {
         self.serialize_unit()
     }
 
@@ -245,7 +179,7 @@ impl<Float: FloatPolicy> ser::Serializer for Serializer<Float> {
         _name: &'static str,
         _variant_index: u32,
         variant: &'static str,
-    ) -> Result<Key<Float>, Error> {
+    ) -> Result<Key<F>, Error> {
         self.serialize_str(variant)
     }
 
@@ -254,7 +188,7 @@ impl<Float: FloatPolicy> ser::Serializer for Serializer<Float> {
         self,
         _name: &'static str,
         value: &T,
-    ) -> Result<Key<Float>, Error>
+    ) -> Result<Key<F>, Error>
     where
         T: ser::Serialize,
     {
@@ -267,7 +201,7 @@ impl<Float: FloatPolicy> ser::Serializer for Serializer<Float> {
         _variant_index: u32,
         variant: &'static str,
         value: &T,
-    ) -> Result<Key<Float>, Error>
+    ) -> Result<Key<F>, Error>
     where
         T: ser::Serialize,
     {
@@ -276,12 +210,12 @@ impl<Float: FloatPolicy> ser::Serializer for Serializer<Float> {
     }
 
     #[inline]
-    fn serialize_none(self) -> Result<Key<Float>, Error> {
+    fn serialize_none(self) -> Result<Key<F>, Error> {
         self.serialize_unit()
     }
 
     #[inline]
-    fn serialize_some<T: ?Sized>(self, value: &T) -> Result<Key<Float>, Error>
+    fn serialize_some<T: ?Sized>(self, value: &T) -> Result<Key<F>, Error>
     where
         T: ser::Serialize,
     {
@@ -353,27 +287,42 @@ impl<Float: FloatPolicy> ser::Serializer for Serializer<Float> {
     }
 }
 
-pub struct SerializeVec<Float: FloatPolicy> {
-    vec: Vec<Key<Float>>,
+pub struct SerializeVec<F>
+where
+    F: FloatPolicy,
+{
+    vec: Vec<Key<F>>,
 }
 
-pub struct SerializeTupleVariant<Float: FloatPolicy> {
+pub struct SerializeTupleVariant<F>
+where
+    F: FloatPolicy,
+{
     name: String,
-    vec: Vec<Key<Float>>,
+    vec: Vec<Key<F>>,
 }
 
-pub struct SerializeMap<Float: FloatPolicy> {
-    map: Vec<(Key<Float>, Key<Float>)>,
-    next_key: Option<Key<Float>>,
+pub struct SerializeMap<F>
+where
+    F: FloatPolicy,
+{
+    map: Vec<(Key<F>, Key<F>)>,
+    next_key: Option<Key<F>>,
 }
 
-pub struct SerializeStructVariant<Float: FloatPolicy> {
+pub struct SerializeStructVariant<F>
+where
+    F: FloatPolicy,
+{
     name: String,
-    map: Vec<(Key<Float>, Key<Float>)>,
+    map: Vec<(Key<F>, Key<F>)>,
 }
 
-impl<Float: FloatPolicy> ser::SerializeSeq for SerializeVec<Float> {
-    type Ok = Key<Float>;
+impl<F> ser::SerializeSeq for SerializeVec<F>
+where
+    F: FloatPolicy,
+{
+    type Ok = Key<F>;
     type Error = Error;
 
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Error>
@@ -384,13 +333,16 @@ impl<Float: FloatPolicy> ser::SerializeSeq for SerializeVec<Float> {
         Ok(())
     }
 
-    fn end(self) -> Result<Key<Float>, Error> {
+    fn end(self) -> Result<Key<F>, Error> {
         Ok(Key::Vec(self.vec))
     }
 }
 
-impl<Float: FloatPolicy> ser::SerializeTuple for SerializeVec<Float> {
-    type Ok = Key<Float>;
+impl<F> ser::SerializeTuple for SerializeVec<F>
+where
+    F: FloatPolicy,
+{
+    type Ok = Key<F>;
     type Error = Error;
 
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Error>
@@ -400,13 +352,16 @@ impl<Float: FloatPolicy> ser::SerializeTuple for SerializeVec<Float> {
         ser::SerializeSeq::serialize_element(self, value)
     }
 
-    fn end(self) -> Result<Key<Float>, Error> {
+    fn end(self) -> Result<Key<F>, Error> {
         ser::SerializeSeq::end(self)
     }
 }
 
-impl<Float: FloatPolicy> ser::SerializeTupleStruct for SerializeVec<Float> {
-    type Ok = Key<Float>;
+impl<F> ser::SerializeTupleStruct for SerializeVec<F>
+where
+    F: FloatPolicy,
+{
+    type Ok = Key<F>;
     type Error = Error;
 
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<(), Error>
@@ -416,13 +371,16 @@ impl<Float: FloatPolicy> ser::SerializeTupleStruct for SerializeVec<Float> {
         ser::SerializeSeq::serialize_element(self, value)
     }
 
-    fn end(self) -> Result<Key<Float>, Error> {
+    fn end(self) -> Result<Key<F>, Error> {
         ser::SerializeSeq::end(self)
     }
 }
 
-impl<Float: FloatPolicy> ser::SerializeTupleVariant for SerializeTupleVariant<Float> {
-    type Ok = Key<Float>;
+impl<F> ser::SerializeTupleVariant for SerializeTupleVariant<F>
+where
+    F: FloatPolicy,
+{
+    type Ok = Key<F>;
     type Error = Error;
 
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<(), Error>
@@ -433,21 +391,24 @@ impl<Float: FloatPolicy> ser::SerializeTupleVariant for SerializeTupleVariant<Fl
         Ok(())
     }
 
-    fn end(self) -> Result<Key<Float>, Error> {
+    fn end(self) -> Result<Key<F>, Error> {
         let value = (Key::from(self.name), Key::Vec(self.vec));
         Ok(Key::Map(vec![value]))
     }
 }
 
-impl<Float: FloatPolicy> ser::SerializeMap for SerializeMap<Float> {
-    type Ok = Key<Float>;
+impl<F> ser::SerializeMap for SerializeMap<F>
+where
+    F: FloatPolicy,
+{
+    type Ok = Key<F>;
     type Error = Error;
 
     fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<(), Error>
     where
         T: ser::Serialize,
     {
-        self.next_key = Some(Key::from(to_key_with_policy(&key)?));
+        self.next_key = Some(to_key_with_policy(&key)?);
         Ok(())
     }
 
@@ -464,13 +425,16 @@ impl<Float: FloatPolicy> ser::SerializeMap for SerializeMap<Float> {
         Ok(())
     }
 
-    fn end(self) -> Result<Key<Float>, Error> {
+    fn end(self) -> Result<Key<F>, Error> {
         Ok(Key::Map(self.map))
     }
 }
 
-impl<Float: FloatPolicy> ser::SerializeStruct for SerializeMap<Float> {
-    type Ok = Key<Float>;
+impl<F> ser::SerializeStruct for SerializeMap<F>
+where
+    F: FloatPolicy,
+{
+    type Ok = Key<F>;
     type Error = Error;
 
     fn serialize_field<T: ?Sized>(&mut self, key: &'static str, value: &T) -> Result<(), Error>
@@ -481,13 +445,16 @@ impl<Float: FloatPolicy> ser::SerializeStruct for SerializeMap<Float> {
         ser::SerializeMap::serialize_value(self, value)
     }
 
-    fn end(self) -> Result<Key<Float>, Error> {
+    fn end(self) -> Result<Key<F>, Error> {
         ser::SerializeMap::end(self)
     }
 }
 
-impl<Float: FloatPolicy> ser::SerializeStructVariant for SerializeStructVariant<Float> {
-    type Ok = Key<Float>;
+impl<F> ser::SerializeStructVariant for SerializeStructVariant<F>
+where
+    F: FloatPolicy,
+{
+    type Ok = Key<F>;
     type Error = Error;
 
     fn serialize_field<T: ?Sized>(&mut self, key: &'static str, value: &T) -> Result<(), Error>
@@ -499,7 +466,7 @@ impl<Float: FloatPolicy> ser::SerializeStructVariant for SerializeStructVariant<
         Ok(())
     }
 
-    fn end(self) -> Result<Key<Float>, Error> {
+    fn end(self) -> Result<Key<F>, Error> {
         let value = (Key::from(self.name), Key::Map(self.map));
         Ok(Key::Map(vec![value]))
     }

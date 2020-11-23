@@ -1,63 +1,76 @@
 #[cfg(feature = "ordered-float")]
-pub use self::ordered_float::OrderedFloat;
+pub use self::ordered_float::{to_key_with_ordered_float, OrderedFloat, OrderedFloatPolicy};
 use crate::error::Error;
-use serde::{de, ser};
-use std::hash::Hash;
+use serde::de;
 
+mod float_policy;
+mod float_repr;
 #[cfg(feature = "ordered-float")]
 mod ordered_float;
 
-/// A policy for handling floating point types in a `Key`.
-///
-/// Currently there are two important `FloatPolicy` types: [`RejectFloat`] and
-/// [`OrderedFloat`]. The former will emit errors instead of allowing floats to
-/// be serialized and the latter while serialize them and provide a total order
-/// which does not adhere to the IEEE standard.
-///
-/// [`RejectFloat`]: RejectFloat
-/// [`OrderedFloat`]: OrderedFloat
-pub trait FloatPolicy: Clone + PartialEq + Eq + PartialOrd + Ord + Hash {
-    /// Serialize an `f32`, possibly failing.
-    fn serialize_f32(value: f32) -> Result<Self, Error>;
+pub use self::float_policy::FloatPolicy;
+pub use self::float_repr::FloatRepr;
 
-    /// Serialize an `f64`, possibly failing.
-    fn serialize_f64(value: f64) -> Result<Self, Error>;
-
-    /// Serialize some floating point type, possibly failing.
-    fn serialize_float<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: ser::Serializer;
-
-    /// Deserialize some other type from this floating point type, possibly failing.
-    fn deserialize_float<'de, V>(&self, visitor: V) -> Result<V::Value, Error>
-    where
-        V: de::Visitor<'de>;
-}
-
-/// A float serialization policy which rejects any attempt to serialize a float with an error.
+/// An uninhabitable type for float policies that cannot produce a value of the
+/// corresponding type. This is used by [RejectFloatPolicy].
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum RejectFloat {}
+pub enum NeverFloat {}
 
-impl FloatPolicy for RejectFloat {
-    fn serialize_f32(_: f32) -> Result<Self, Error> {
+impl FloatRepr<f32> for NeverFloat {
+    fn serialize(_: f32) -> Result<Self, Error> {
         Err(Error::UnsupportedType("f32"))
     }
 
-    fn serialize_f64(_: f64) -> Result<Self, Error> {
-        Err(Error::UnsupportedType("f64"))
-    }
-
-    fn serialize_float<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: ser::Serializer,
-    {
-        match *self {}
-    }
-
-    fn deserialize_float<'de, V>(&self, _visitor: V) -> Result<V::Value, Error>
+    fn visit<'de, V>(&self, _: V) -> Result<V::Value, Error>
     where
         V: de::Visitor<'de>,
     {
-        match *self {}
+        Err(Error::UnsupportedType("f32"))
     }
+}
+
+impl FloatRepr<f64> for NeverFloat {
+    fn serialize(_: f64) -> Result<Self, Error> {
+        Err(Error::UnsupportedType("f64"))
+    }
+
+    fn visit<'de, V>(&self, _: V) -> Result<V::Value, Error>
+    where
+        V: de::Visitor<'de>,
+    {
+        Err(Error::UnsupportedType("f64"))
+    }
+}
+
+impl serde::Serialize for NeverFloat {
+    fn serialize<S>(&self, _: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // Note: type is uninhabitable, so this impl can never be reached.
+        unreachable!()
+    }
+}
+
+/// A float serialization policy which rejects any attempt to serialize a float
+/// with an error. This policy is used by the [to_key] function.
+///
+/// [to_key]: crate::to_key
+///
+/// # Examples
+///
+/// ```rust
+/// use serde_hashkey::{Key, Float, to_key};
+///
+/// # fn main() -> Result<(), serde_hashkey::Error> {
+/// assert!(to_key(&"John Doe").is_ok());
+/// assert!(to_key(&42.42f32).is_err());
+/// # Ok(()) }
+/// ```
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub struct RejectFloatPolicy(());
+
+impl FloatPolicy for RejectFloatPolicy {
+    type F32 = NeverFloat;
+    type F64 = NeverFloat;
 }
