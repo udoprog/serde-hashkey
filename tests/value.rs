@@ -1,3 +1,5 @@
+#![cfg(feature = "ordered-float")]
+
 use serde_derive::{Deserialize, Serialize};
 use serde_hashkey::{from_key, to_key, to_key_with_policy, Error, Integer, Key, OrderedFloat};
 use std::collections::BTreeMap;
