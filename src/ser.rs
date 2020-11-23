@@ -4,7 +4,8 @@ use crate::error::Error;
 use serde::ser;
 use std::marker::PhantomData;
 
-use crate::key::{FloatPolicy, Integer, Key};
+use crate::float::FloatPolicy;
+use crate::key::{Integer, Key};
 
 /// Serialize the given value to a [Key].
 ///

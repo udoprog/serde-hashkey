@@ -26,8 +26,13 @@ jobs:
       with:
         command: build
         args: --all
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --all --all-features
     - name: Test
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --all
+        args: --all --all-features

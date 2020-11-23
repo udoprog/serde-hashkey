@@ -85,6 +85,7 @@
 
 mod de;
 mod error;
+mod float;
 mod key;
 mod ser;
 
@@ -92,7 +93,10 @@ mod ser;
 pub use crate::de::{from_key, from_key_with_policy};
 #[doc(inline)]
 pub use crate::error::{Error, Result};
+#[cfg(feature = "ordered-float")]
+pub use crate::float::OrderedFloat;
+pub use crate::float::RejectFloat;
 #[doc(inline)]
-pub use crate::key::{FloatPolicy, Integer, Key, OrderedFloat, RejectFloat};
+pub use crate::key::{Integer, Key};
 #[doc(inline)]
 pub use crate::ser::{to_key, to_key_with_policy};

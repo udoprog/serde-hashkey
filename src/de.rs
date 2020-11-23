@@ -4,10 +4,9 @@ use serde::de::{self, IntoDeserializer};
 use std::fmt;
 use std::marker::PhantomData;
 
-use crate::{
-    error::Error,
-    key::{FloatPolicy, Integer, Key},
-};
+use crate::error::Error;
+use crate::float::FloatPolicy;
+use crate::key::{Integer, Key};
 
 /// Deserialize the given type from a [Key].
 ///
