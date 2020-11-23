@@ -1,12 +1,10 @@
 //! Deserialization for serde-hashkey.
 
 use serde::de::{self, IntoDeserializer};
-use std::fmt;
-use std::marker::PhantomData;
 
 use crate::error::Error;
-use crate::float::FloatPolicy;
-use crate::key::{Integer, Key};
+use crate::float::{FloatPolicy, FloatRepr};
+use crate::key::{Float, Integer, Key};
 
 /// Deserialize the given type from a [Key].
 ///
@@ -140,7 +138,8 @@ where
             Key::Integer(Integer::I32(v)) => visitor.visit_i32(*v),
             Key::Integer(Integer::I64(v)) => visitor.visit_i64(*v),
             Key::Integer(Integer::I128(v)) => visitor.visit_i128(*v),
-            Key::Float(float) => float.deserialize_float(visitor),
+            Key::Float(Float::F32(float)) => <F::F32 as FloatRepr<f32>>::visit(float, visitor),
+            Key::Float(Float::F64(float)) => <F::F64 as FloatRepr<f64>>::visit(float, visitor),
             Key::String(s) => visitor.visit_str(s),
             Key::Vec(array) => visitor.visit_seq(SeqDeserializer::new(array)),
             Key::Map(m) => visitor.visit_map(MapDeserializer::new(m)),
@@ -337,7 +336,7 @@ where
 
         let ret = visitor.visit_seq(&mut self)?;
 
-        if self.values.len() == 0 {
+        if self.values.is_empty() {
             return Ok(ret);
         }
 
@@ -443,197 +442,5 @@ where
         };
 
         seed.deserialize(Deserializer::new(value))
-    }
-}
-
-impl<'de, F> de::Deserialize<'de> for Key<F>
-where
-    F: FloatPolicy,
-{
-    #[inline]
-    fn deserialize<D>(deserializer: D) -> Result<Key<F>, D::Error>
-    where
-        D: de::Deserializer<'de>,
-    {
-        struct ValueVisitor<F>(PhantomData<F>)
-        where
-            F: FloatPolicy;
-
-        impl<'de, F> de::Visitor<'de> for ValueVisitor<F>
-        where
-            F: FloatPolicy,
-        {
-            type Value = Key<F>;
-
-            fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-                fmt.write_str("any valid key")
-            }
-
-            #[inline]
-            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                self.visit_string(String::from(value))
-            }
-
-            #[inline]
-            fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(Key::String(value))
-            }
-
-            #[inline]
-            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                self.visit_byte_buf(v.to_owned())
-            }
-
-            #[inline]
-            fn visit_byte_buf<E>(self, v: Vec<u8>) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(Key::Bytes(v))
-            }
-
-            #[inline]
-            fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(v.into())
-            }
-
-            #[inline]
-            fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(Key::Bool(v))
-            }
-
-            #[inline]
-            fn visit_none<E>(self) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                self.visit_unit()
-            }
-
-            #[inline]
-            fn visit_unit<E>(self) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                Ok(Key::Unit)
-            }
-
-            #[inline]
-            fn visit_seq<V>(self, mut visitor: V) -> Result<Self::Value, V::Error>
-            where
-                V: de::SeqAccess<'de>,
-            {
-                let mut vec = Vec::new();
-
-                while let Some(elem) = visitor.next_element()? {
-                    vec.push(elem);
-                }
-
-                Ok(Key::Vec(vec))
-            }
-
-            #[inline]
-            fn visit_map<V>(self, mut visitor: V) -> Result<Self::Value, V::Error>
-            where
-                V: de::MapAccess<'de>,
-            {
-                let mut values = Vec::new();
-
-                while let Some((key, value)) = visitor.next_entry()? {
-                    values.insert(key, value);
-                }
-
-                Ok(Key::Map(values))
-            }
-        }
-
-        deserializer.deserialize_any(ValueVisitor::<F>(PhantomData))
     }
 }

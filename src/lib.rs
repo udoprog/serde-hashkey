@@ -108,10 +108,10 @@ mod ser;
 pub use crate::de::from_key;
 #[doc(inline)]
 pub use crate::error::{Error, Result};
-pub use crate::float::RejectFloat;
 #[cfg(feature = "ordered-float")]
-pub use crate::float::{to_key_with_ordered_float, OrderedFloat};
+pub use crate::float::{to_key_with_ordered_float, OrderedFloat, OrderedFloatPolicy};
+pub use crate::float::{FloatPolicy, FloatRepr, NeverFloat, RejectFloatPolicy};
 #[doc(inline)]
-pub use crate::key::{Integer, Key};
+pub use crate::key::{Float, Integer, Key};
 #[doc(inline)]
 pub use crate::ser::to_key;

@@ -2,7 +2,7 @@
 
 use serde_derive::{Deserialize, Serialize};
 use serde_hashkey::{
-    from_key, to_key, to_key_with_ordered_float, Error, Integer, Key, OrderedFloat,
+    from_key, to_key, to_key_with_ordered_float, Error, Float, Integer, Key, OrderedFloat,
 };
 use std::collections::BTreeMap;
 
@@ -96,10 +96,10 @@ fn deny_floats_by_default() {
     assert_eq!(to_key(&0f64), Err(Error::UnsupportedType("f64")));
     assert_eq!(
         to_key_with_ordered_float(&0f32),
-        Ok(Key::Float(OrderedFloat::F32(0f32)))
+        Ok(Key::Float(Float::F32(OrderedFloat(0f32))))
     );
     assert_eq!(
         to_key_with_ordered_float(&0f64),
-        Ok(Key::Float(OrderedFloat::F64(0f64)))
+        Ok(Key::Float(Float::F64(OrderedFloat(0f64))))
     );
 }

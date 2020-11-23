@@ -1,90 +1,123 @@
 use crate::error::Error;
-use crate::float::FloatPolicy;
+use crate::float::{FloatPolicy, FloatRepr};
+use crate::key::Key;
+use num_traits02 as nt02;
+use ordered_float2 as of2;
 use serde::{de, ser};
-use std::cmp::Ordering;
-use std::hash::{Hash, Hasher};
+use std::cmp;
+use std::fmt;
+use std::hash;
 
-/// An opaque floating-point type which has a total ordering.
-#[derive(Debug, Clone, Copy)]
-pub enum OrderedFloat {
-    /// Variant for an `f32`.
-    F32(f32),
-    /// Variant for an `f64`.
-    F64(f64),
-}
+/// An opaque floating-point representation which has a total ordering. This is
+/// used by [OrderedFloatPolicy].
+#[derive(Clone, Copy)]
+pub struct OrderedFloat<T>(pub T);
 
-impl PartialEq for OrderedFloat {
-    fn eq(&self, other: &Self) -> bool {
-        use ordered_float::OrderedFloat as TotalOrd;
-        match (*self, *other) {
-            (Self::F32(lhs), Self::F32(rhs)) => TotalOrd(lhs) == TotalOrd(rhs),
-            (Self::F64(lhs), Self::F64(rhs)) => TotalOrd(lhs) == TotalOrd(rhs),
-            _ => false,
-        }
+impl<T> fmt::Debug for OrderedFloat<T>
+where
+    T: fmt::Debug,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, fmt)
     }
 }
 
-impl Eq for OrderedFloat {}
-
-impl PartialOrd for OrderedFloat {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for OrderedFloat {
-    fn cmp(&self, other: &Self) -> Ordering {
-        use ordered_float::OrderedFloat as TotalOrd;
-        match (*self, *other) {
-            (Self::F32(_), Self::F64(_)) => Ordering::Less,
-            (Self::F64(_), Self::F32(_)) => Ordering::Greater,
-            (Self::F32(lhs), Self::F32(rhs)) => TotalOrd(lhs).cmp(&TotalOrd(rhs)),
-            (Self::F64(lhs), Self::F64(rhs)) => TotalOrd(lhs).cmp(&TotalOrd(rhs)),
-        }
-    }
-}
-
-impl Hash for OrderedFloat {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        use ordered_float::OrderedFloat as TotalOrd;
-        match *self {
-            Self::F32(v) => TotalOrd(v).hash(state),
-            Self::F64(v) => TotalOrd(v).hash(state),
-        }
-    }
-}
-
-impl FloatPolicy for OrderedFloat {
-    fn serialize_f32(value: f32) -> Result<Self, Error> {
-        Ok(Self::F32(value))
+impl FloatRepr<f32> for OrderedFloat<f32> {
+    fn serialize(float: f32) -> Result<Self, Error> {
+        Ok(OrderedFloat(float))
     }
 
-    fn serialize_f64(value: f64) -> Result<Self, Error> {
-        Ok(Self::F64(value))
-    }
-
-    fn serialize_float<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: ser::Serializer,
-    {
-        match *self {
-            Self::F32(v) => serializer.serialize_f32(v),
-            Self::F64(v) => serializer.serialize_f64(v),
-        }
-    }
-
-    fn deserialize_float<'de, V>(&self, visitor: V) -> Result<V::Value, Error>
+    fn visit<'de, V>(&self, visitor: V) -> Result<V::Value, Error>
     where
         V: de::Visitor<'de>,
     {
-        match *self {
-            Self::F32(v) => visitor.visit_f32(v),
-            Self::F64(v) => visitor.visit_f64(v),
-        }
+        visitor.visit_f32(self.0)
     }
 }
 
-/// Serialize the given value to a [Key], with an [OrderedFloat] float policy.
+impl FloatRepr<f64> for OrderedFloat<f64> {
+    fn serialize(float: f64) -> Result<Self, Error> {
+        Ok(OrderedFloat(float))
+    }
+
+    fn visit<'de, V>(&self, visitor: V) -> Result<V::Value, Error>
+    where
+        V: de::Visitor<'de>,
+    {
+        visitor.visit_f64(self.0)
+    }
+}
+
+impl<T> serde::Serialize for OrderedFloat<T>
+where
+    T: serde::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+impl<T> PartialEq for OrderedFloat<T>
+where
+    T: nt02::Float,
+{
+    fn eq(&self, other: &Self) -> bool {
+        of2::OrderedFloat(self.0) == of2::OrderedFloat(other.0)
+    }
+}
+
+impl<T> Eq for OrderedFloat<T> where T: nt02::Float {}
+
+impl<T> PartialOrd for OrderedFloat<T>
+where
+    T: nt02::Float,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(of2::OrderedFloat(self.0).cmp(&of2::OrderedFloat(other.0)))
+    }
+}
+
+impl<T> cmp::Ord for OrderedFloat<T>
+where
+    T: nt02::Float,
+{
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        of2::OrderedFloat(self.0).cmp(&of2::OrderedFloat(other.0))
+    }
+}
+
+impl<T> hash::Hash for OrderedFloat<T>
+where
+    T: nt02::Float,
+{
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        of2::OrderedFloat(self.0).hash(state)
+    }
+}
+
+/// A float serialization policy which delegates decisions to the
+/// `ordered-float` crate. This policy is used by the
+/// [to_key_with_ordered_float] function.
+///
+/// [Key]: crate::Key
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub struct OrderedFloatPolicy(());
+
+impl FloatPolicy for OrderedFloatPolicy {
+    type F32 = OrderedFloat<f32>;
+    type F64 = OrderedFloat<f64>;
+}
+
+/// Serialize the given value to a [Key] using [OrderedFloatPolicy].
+///
+/// This policy is derived from the [`OrderedFloat` wrapper] in the
+/// [`ordered-float` crate].
+///
+/// [`OrderedFloat` type]: https://docs.rs/ordered-float/2/ordered_float/struct.OrderedFloat.html
+/// [`ordered-float` crate]: https://docs.rs/ordered-float/2/ordered_float/
 ///
 /// # Examples
 ///
@@ -121,9 +154,9 @@ impl FloatPolicy for OrderedFloat {
 /// # Ok(())
 /// # }
 /// ```
-pub fn to_key_with_ordered_float<T>(value: &T) -> Result<crate::Key<OrderedFloat>, Error>
+pub fn to_key_with_ordered_float<T>(value: &T) -> Result<Key<OrderedFloatPolicy>, Error>
 where
     T: ser::Serialize,
 {
-    crate::ser::to_key_with_policy::<T, OrderedFloat>(value)
+    crate::ser::to_key_with_policy::<T, OrderedFloatPolicy>(value)
 }

@@ -4,8 +4,8 @@ use crate::error::Error;
 use serde::ser;
 use std::marker::PhantomData;
 
-use crate::float::FloatPolicy;
-use crate::key::{Integer, Key};
+use crate::float::{FloatPolicy, FloatRepr, RejectFloatPolicy};
+use crate::key::{Float, Key};
 
 /// Serialize the given value to a [Key].
 ///
@@ -44,61 +44,20 @@ use crate::key::{Integer, Key};
 /// # Ok(())
 /// # }
 /// ```
-pub fn to_key<T>(value: &T) -> Result<Key<crate::RejectFloat>, Error>
+pub fn to_key<T>(value: &T) -> Result<Key<RejectFloatPolicy>, Error>
 where
     T: ser::Serialize,
 {
-    to_key_with_policy::<T, crate::RejectFloat>(value)
+    to_key_with_policy::<T, RejectFloatPolicy>(value)
 }
 
+/// Internal helper to serialize a value with the given policy.
 pub(crate) fn to_key_with_policy<T, F>(value: &T) -> Result<Key<F>, Error>
 where
     T: ser::Serialize,
     F: FloatPolicy,
 {
     value.serialize(Serializer(PhantomData))
-}
-
-impl<F> ser::Serialize for Key<F>
-where
-    F: FloatPolicy,
-{
-    #[inline]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: ser::Serializer,
-    {
-        match self {
-            Key::Unit => serializer.serialize_unit(),
-            Key::Integer(Integer::U8(v)) => serializer.serialize_u8(*v),
-            Key::Integer(Integer::U16(v)) => serializer.serialize_u16(*v),
-            Key::Integer(Integer::U32(v)) => serializer.serialize_u32(*v),
-            Key::Integer(Integer::U64(v)) => serializer.serialize_u64(*v),
-            Key::Integer(Integer::U128(v)) => serializer.serialize_u128(*v),
-            Key::Integer(Integer::I8(v)) => serializer.serialize_i8(*v),
-            Key::Integer(Integer::I16(v)) => serializer.serialize_i16(*v),
-            Key::Integer(Integer::I32(v)) => serializer.serialize_i32(*v),
-            Key::Integer(Integer::I64(v)) => serializer.serialize_i64(*v),
-            Key::Integer(Integer::I128(v)) => serializer.serialize_i128(*v),
-            Key::Float(float) => float.serialize_float(serializer),
-            Key::Bytes(v) => serializer.serialize_bytes(&v),
-            Key::String(v) => serializer.serialize_str(&v),
-            Key::Vec(v) => v.serialize(serializer),
-            Key::Map(m) => {
-                use self::ser::SerializeMap as _;
-
-                let mut map = serializer.serialize_map(Some(m.len()))?;
-
-                for (k, v) in m {
-                    map.serialize_key(k)?;
-                    map.serialize_value(v)?;
-                }
-
-                map.end()
-            }
-            Key::Bool(v) => serializer.serialize_bool(*v),
-        }
-    }
 }
 
 struct Serializer<F>(PhantomData<F>)
@@ -176,12 +135,16 @@ where
 
     #[inline]
     fn serialize_f32(self, value: f32) -> Result<Key<F>, Error> {
-        Ok(Key::Float(F::serialize_f32(value)?))
+        Ok(Key::Float(Float::F32(
+            <F::F32 as FloatRepr<f32>>::serialize(value)?,
+        )))
     }
 
     #[inline]
     fn serialize_f64(self, value: f64) -> Result<Key<F>, Error> {
-        Ok(Key::Float(F::serialize_f64(value)?))
+        Ok(Key::Float(Float::F64(
+            <F::F64 as FloatRepr<f64>>::serialize(value)?,
+        )))
     }
 
     #[inline]
@@ -445,7 +408,7 @@ where
     where
         T: ser::Serialize,
     {
-        self.next_key = Some(Key::from(to_key_with_policy(&key)?));
+        self.next_key = Some(to_key_with_policy(&key)?);
         Ok(())
     }
 
