@@ -10,7 +10,7 @@
   </a>
 </div>
 
-Serde-based in-memory key serialization.
+Serde-based in-memory key serialization which supports hashing.
 
 This allows any serde-serializable type to be converted into a value which
 implements `PartialEq`, `Eq`, `ParialOrd`, `Ord`, and `Hash`.

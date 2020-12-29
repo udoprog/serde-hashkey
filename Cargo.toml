@@ -1,12 +1,12 @@
 [package]
 name = "serde-hashkey"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["John-John Tedro"]
 repository = "https://github.com/udoprog/serde-hashkey"
 readme = "README.md"
 license = "MIT/Apache-2.0"
 description = """
-Space efficient, in-memory key based on serde.
+Space efficient, in-memory serde serialization which supports hashing.
 """
 keywords = ["serde", "serialization"]
 categories = ["encoding"]
