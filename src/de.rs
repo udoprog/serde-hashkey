@@ -141,7 +141,7 @@ where
             Key::Float(Float::F32(float)) => <F::F32 as FloatRepr<f32>>::visit(float, visitor),
             Key::Float(Float::F64(float)) => <F::F64 as FloatRepr<f64>>::visit(float, visitor),
             Key::String(s) => visitor.visit_str(s),
-            Key::Vec(array) => visitor.visit_seq(SeqDeserializer::new(array)),
+            Key::Seq(array) => visitor.visit_seq(SeqDeserializer::new(array)),
             Key::Map(m) => visitor.visit_map(MapDeserializer::new(m)),
             Key::Bytes(bytes) => visitor.visit_borrowed_bytes(bytes),
         };
@@ -275,7 +275,7 @@ where
         V: de::Visitor<'de>,
     {
         match self.value {
-            Some(Key::Vec(values)) => {
+            Some(Key::Seq(values)) => {
                 de::Deserializer::deserialize_any(SeqDeserializer::new(values), visitor)
             }
             Some(_) => Err(Error::UnexpectedVariant("tuple variant")),

@@ -98,7 +98,7 @@ where
     /// A string.
     String(Box<str>),
     /// A vector.
-    Vec(Box<[Key<F>]>),
+    Seq(Box<[Key<F>]>),
     /// A map.
     Map(Box<[(Key<F>, Key<F>)]>),
 }
@@ -113,12 +113,12 @@ impl Key {
     /// Normalize the key, making sure that all contained maps are sorted.
     pub fn normalize(self) -> Key {
         match self {
-            Key::Vec(mut vec) => {
+            Key::Seq(mut vec) => {
                 for value in vec.iter_mut() {
                     *value = mem::replace(value, Key::Unit).normalize();
                 }
 
-                Key::Vec(vec)
+                Key::Seq(vec)
             }
             Key::Map(mut map) => {
                 for (key, value) in map.iter_mut() {
@@ -174,7 +174,7 @@ impl_integer_from!(U128, u128);
 impl_from!(Key::Bool, bool);
 impl_from!(Key::Bytes, Vec<u8>);
 impl_from!(Key::String, String);
-impl_from!(Key::Vec, Vec<Key<F>>);
+impl_from!(Key::Seq, Vec<Key<F>>);
 impl_from!(Key::Map, Vec<(Key<F>, Key<F>)>);
 
 /// Serialize implementation for a [Key].
@@ -224,7 +224,7 @@ where
             Key::Float(Float::F64(float)) => float.serialize(serializer),
             Key::Bytes(v) => serializer.serialize_bytes(&v),
             Key::String(v) => serializer.serialize_str(&v),
-            Key::Vec(v) => v.serialize(serializer),
+            Key::Seq(v) => v.serialize(serializer),
             Key::Map(m) => {
                 use self::ser::SerializeMap as _;
 
@@ -457,7 +457,7 @@ where
                     vec.push(elem);
                 }
 
-                Ok(Key::Vec(vec.into()))
+                Ok(Key::Seq(vec.into()))
             }
 
             #[inline]

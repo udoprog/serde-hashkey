@@ -335,7 +335,7 @@ where
     }
 
     fn end(self) -> Result<Key<F>, Error> {
-        Ok(Key::Vec(self.vec.into()))
+        Ok(Key::Seq(self.vec.into()))
     }
 }
 
@@ -393,7 +393,7 @@ where
     }
 
     fn end(self) -> Result<Key<F>, Error> {
-        let value = (Key::from(self.name), Key::Vec(self.vec.into()));
+        let value = (Key::from(self.name), Key::Seq(self.vec.into()));
         Ok(Key::Map([value].into()))
     }
 }
