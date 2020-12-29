@@ -63,27 +63,21 @@ fn test_width() {
 
 #[test]
 fn test_normalize() {
-    let a = Key::Map(vec![
-        (
-            Key::String(String::from("baz")),
-            Key::String(String::from("biz")),
-        ),
-        (
-            Key::String(String::from("foo")),
-            Key::String(String::from("bar")),
-        ),
-    ]);
+    let a = Key::Map(
+        vec![
+            (Key::String("baz".into()), Key::String("biz".into())),
+            (Key::String("foo".into()), Key::String("bar".into())),
+        ]
+        .into(),
+    );
 
-    let b = Key::Map(vec![
-        (
-            Key::String(String::from("foo")),
-            Key::String(String::from("bar")),
-        ),
-        (
-            Key::String(String::from("baz")),
-            Key::String(String::from("biz")),
-        ),
-    ]);
+    let b = Key::Map(
+        vec![
+            (Key::String("foo".into()), Key::String("bar".into())),
+            (Key::String("baz".into()), Key::String("biz".into())),
+        ]
+        .into(),
+    );
 
     assert_ne!(a, b);
     assert_eq!(a, b.clone().normalize());

@@ -94,13 +94,13 @@ where
     /// A 32-bit floating-point number.
     Float(Float<F>),
     /// A byte array.
-    Bytes(Vec<u8>),
+    Bytes(Box<[u8]>),
     /// A string.
-    String(String),
+    String(Box<str>),
     /// A vector.
-    Vec(Vec<Key<F>>),
+    Vec(Box<[Key<F>]>),
     /// A map.
-    Map(Vec<(Key<F>, Key<F>)>),
+    Map(Box<[(Key<F>, Key<F>)]>),
 }
 
 impl Default for Key {
@@ -114,14 +114,14 @@ impl Key {
     pub fn normalize(self) -> Key {
         match self {
             Key::Vec(mut vec) => {
-                for value in &mut vec {
+                for value in vec.iter_mut() {
                     *value = mem::replace(value, Key::Unit).normalize();
                 }
 
                 Key::Vec(vec)
             }
             Key::Map(mut map) => {
-                for (key, value) in &mut map {
+                for (key, value) in map.iter_mut() {
                     *key = mem::replace(key, Key::Unit).normalize();
                     *value = mem::replace(value, Key::Unit).normalize();
                 }
@@ -230,7 +230,7 @@ where
 
                 let mut map = serializer.serialize_map(Some(m.len()))?;
 
-                for (k, v) in m {
+                for (k, v) in m.iter() {
                     map.serialize_key(k)?;
                     map.serialize_value(v)?;
                 }
@@ -288,19 +288,19 @@ where
             }
 
             #[inline]
-            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
             where
                 E: de::Error,
             {
-                self.visit_string(String::from(value))
+                Ok(Key::String(s.into()))
             }
 
             #[inline]
-            fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+            fn visit_string<E>(self, s: String) -> Result<Self::Value, E>
             where
                 E: de::Error,
             {
-                Ok(Key::String(value))
+                Ok(Key::String(s.into()))
             }
 
             #[inline]
@@ -316,7 +316,7 @@ where
             where
                 E: de::Error,
             {
-                Ok(Key::Bytes(v))
+                Ok(Key::Bytes(v.into()))
             }
 
             #[inline]
@@ -448,13 +448,16 @@ where
             where
                 V: de::SeqAccess<'de>,
             {
-                let mut vec = Vec::new();
+                let mut vec = visitor
+                    .size_hint()
+                    .map(Vec::with_capacity)
+                    .unwrap_or_default();
 
                 while let Some(elem) = visitor.next_element()? {
                     vec.push(elem);
                 }
 
-                Ok(Key::Vec(vec))
+                Ok(Key::Vec(vec.into()))
             }
 
             #[inline]
@@ -462,13 +465,16 @@ where
             where
                 V: de::MapAccess<'de>,
             {
-                let mut values = Vec::new();
+                let mut map = visitor
+                    .size_hint()
+                    .map(Vec::with_capacity)
+                    .unwrap_or_default();
 
                 while let Some((key, value)) = visitor.next_entry()? {
-                    values.insert(key, value);
+                    map.insert(key, value);
                 }
 
-                Ok(Key::Map(values))
+                Ok(Key::Map(map.into()))
             }
         }
 

@@ -156,11 +156,12 @@ where
 
     #[inline]
     fn serialize_str(self, value: &str) -> Result<Key<F>, Error> {
-        Ok(Key::String(value.to_owned()))
+        Ok(Key::String(value.into()))
     }
 
+    #[inline]
     fn serialize_bytes(self, value: &[u8]) -> Result<Key<F>, Error> {
-        Ok(Key::Bytes(value.to_vec()))
+        Ok(Key::Bytes(value.into()))
     }
 
     #[inline]
@@ -206,7 +207,7 @@ where
         T: ser::Serialize,
     {
         let value = (Key::from(variant.to_owned()), to_key_with_policy(&value)?);
-        Ok(Key::Map(vec![value]))
+        Ok(Key::Map([value].into()))
     }
 
     #[inline]
@@ -334,7 +335,7 @@ where
     }
 
     fn end(self) -> Result<Key<F>, Error> {
-        Ok(Key::Vec(self.vec))
+        Ok(Key::Vec(self.vec.into()))
     }
 }
 
@@ -392,8 +393,8 @@ where
     }
 
     fn end(self) -> Result<Key<F>, Error> {
-        let value = (Key::from(self.name), Key::Vec(self.vec));
-        Ok(Key::Map(vec![value]))
+        let value = (Key::from(self.name), Key::Vec(self.vec.into()));
+        Ok(Key::Map([value].into()))
     }
 }
 
@@ -426,7 +427,7 @@ where
     }
 
     fn end(self) -> Result<Key<F>, Error> {
-        Ok(Key::Map(self.map))
+        Ok(Key::Map(self.map.into()))
     }
 }
 
@@ -467,7 +468,7 @@ where
     }
 
     fn end(self) -> Result<Key<F>, Error> {
-        let value = (Key::from(self.name), Key::Map(self.map));
-        Ok(Key::Map(vec![value]))
+        let value = (Key::from(self.name), Key::Map(self.map.into()));
+        Ok(Key::Map([value].into()))
     }
 }
