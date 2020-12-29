@@ -113,7 +113,7 @@ impl FloatPolicy for OrderedFloatPolicy {
 
 /// Serialize the given value to a [Key] using [OrderedFloatPolicy].
 ///
-/// This policy is derived from the [`OrderedFloat` wrapper] in the
+/// This policy is derived from the [`OrderedFloat` type] in the
 /// [`ordered-float` crate].
 ///
 /// [`OrderedFloat` type]: https://docs.rs/ordered-float/2/ordered_float/struct.OrderedFloat.html

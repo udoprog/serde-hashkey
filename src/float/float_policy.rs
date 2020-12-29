@@ -1,12 +1,13 @@
 use crate::float::FloatRepr;
 
-/// A policy for handling floating point types in a `Key`.
+/// A policy for handling floating point types in a [Key].
 ///
 /// Currently there are two important `FloatPolicy` types: [RejectFloatPolicy]
 /// and [OrderedFloat]. The former will emit errors instead of allowing floats
 /// to be serialized and the latter while serialize them and provide a total
 /// order which does not adhere to the IEEE standard.
 ///
+/// [Key]: crate::Key
 /// [RejectFloatPolicy]: crate::RejectFloatPolicy
 /// [OrderedFloat]: crate::OrderedFloat
 ///
