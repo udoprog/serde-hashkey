@@ -2,7 +2,7 @@ use crate::error::Error;
 use crate::float::{FloatPolicy, FloatRepr};
 use crate::key::Key;
 use num_traits02 as nt02;
-use ordered_float2 as of2;
+use ordered_float3 as of3;
 use serde::{de, ser};
 use std::cmp;
 use std::fmt;
@@ -65,7 +65,7 @@ where
     T: nt02::Float,
 {
     fn eq(&self, other: &Self) -> bool {
-        of2::OrderedFloat(self.0) == of2::OrderedFloat(other.0)
+        of3::OrderedFloat(self.0) == of3::OrderedFloat(other.0)
     }
 }
 
@@ -76,7 +76,7 @@ where
     T: nt02::Float,
 {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        Some(of2::OrderedFloat(self.0).cmp(&of2::OrderedFloat(other.0)))
+        Some(of3::OrderedFloat(self.0).cmp(&of3::OrderedFloat(other.0)))
     }
 }
 
@@ -85,7 +85,7 @@ where
     T: nt02::Float,
 {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
-        of2::OrderedFloat(self.0).cmp(&of2::OrderedFloat(other.0))
+        of3::OrderedFloat(self.0).cmp(&of3::OrderedFloat(other.0))
     }
 }
 
@@ -94,7 +94,7 @@ where
     T: nt02::Float,
 {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        of2::OrderedFloat(self.0).hash(state)
+        of3::OrderedFloat(self.0).hash(state)
     }
 }
 
