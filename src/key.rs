@@ -471,7 +471,7 @@ where
                     .unwrap_or_default();
 
                 while let Some((key, value)) = visitor.next_entry()? {
-                    map.insert(key, value);
+                    map.push((key, value));
                 }
 
                 Ok(Key::Map(map.into()))
