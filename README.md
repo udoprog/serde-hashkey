@@ -12,7 +12,7 @@ implements `PartialEq`, `Eq`, `ParialOrd`, `Ord`, and `Hash`.
 
 [Key] is useful because it allows for a form of type-erasure. Let's say you
 want to build a generic in-memory key-value store where you want to store
-arbitrary serde-serializable keys. This is typical for things like caches or
+arbitrary serde-serializable keys. This is useful for things like caches or
 dependency injection frameworks.
 
 <br>
@@ -41,6 +41,8 @@ Available float policies are:
 * [OrderedFloat] - the behavior when using [to_key_with_ordered_float]. The
   `ordered-float` feature must be enabled to use this. The behavior is
   derived from the [`ordered-float` crate].
+
+<br>
 
 ### Features
 
