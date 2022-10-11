@@ -116,12 +116,13 @@ impl FloatPolicy for OrderedFloatPolicy {
 /// This policy is derived from the [`OrderedFloat` type] in the
 /// [`ordered-float` crate].
 ///
-/// [`OrderedFloat` type]: https://docs.rs/ordered-float/2/ordered_float/struct.OrderedFloat.html
+/// [`OrderedFloat` type]:
+///     https://docs.rs/ordered-float/2/ordered_float/struct.OrderedFloat.html
 /// [`ordered-float` crate]: https://docs.rs/ordered-float/2/ordered_float/
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use serde_derive::{Deserialize, Serialize};
 /// use serde_hashkey::{from_key, to_key_with_ordered_float, OrderedFloat, Key};
 /// use std::collections::HashMap;

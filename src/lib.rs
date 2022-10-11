@@ -13,6 +13,19 @@
 //! arbitrary serde-serializable keys. This is typical for things like caches or
 //! dependency injection frameworks.
 //!
+//! <br>
+//!
+//! ## Usage
+//!
+//! Add the following to your Cargo.toml:
+//!
+//! ```toml
+//! [dependencies]
+//! serde-hashkey = "0.4.2"
+//! ```
+//!
+//! <br>
+//!
 //! ## Float policies
 //!
 //! By default, [Key] can't include floating point types such as `f32` and
@@ -32,14 +45,17 @@
 //! * `ordered-float` - Enables serializing floating point numbers through
 //!   behavior derived from the [`ordered-float` crate]
 //!
+//! <br>
+//!
 //! ## Examples
 //!
 //! > You can run this example with `cargo run --example book`
 //!
-//! ```rust
+//! ```
+//! use std::collections::HashMap;
+//!
 //! use serde_derive::{Deserialize, Serialize};
 //! use serde_hashkey::{from_key, to_key, Error, Key};
-//! use std::{collections::HashMap, error};
 //!
 //! #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 //! struct Author {
@@ -53,34 +69,32 @@
 //!     author: Author,
 //! }
 //!
-//! fn main() -> Result<(), Box<dyn error::Error>> {
-//!     let book = Book {
-//!         title: String::from("Birds of a feather"),
-//!         author: Author {
-//!             name: String::from("Noah"),
-//!             age: 42,
-//!         },
-//!     };
+//! let book = Book {
+//!     title: String::from("Birds of a feather"),
+//!     author: Author {
+//!         name: String::from("Noah"),
+//!         age: 42,
+//!     },
+//! };
 //!
-//!     let key = to_key(&book)?;
+//! let key = to_key(&book)?;
 //!
-//!     let mut ratings = HashMap::new();
-//!     ratings.insert(key.clone(), 5);
+//! let mut ratings = HashMap::new();
+//! ratings.insert(key.clone(), 5);
 //!
-//!     println!("ratings: {:?}", ratings);
+//! println!("ratings: {:?}", ratings);
 //!
-//!     println!(
-//!         "book as json (through key): {}",
-//!         serde_json::to_string_pretty(&key)?
-//!     );
+//! println!(
+//!     "book as json (through key): {}",
+//!     serde_json::to_string_pretty(&key)?
+//! );
 //!
-//!     println!(
-//!         "book as json (through original object): {}",
-//!         serde_json::to_string_pretty(&book)?
-//!     );
+//! println!(
+//!     "book as json (through original object): {}",
+//!     serde_json::to_string_pretty(&book)?
+//! );
 //!
-//!     Ok(())
-//! }
+//! # Ok::<_, Box<dyn std::error::Error>>(())
 //! ```
 //!
 //! [totally ordered nor hashable]: https://internals.rust-lang.org/t/f32-f64-should-implement-hash/5436
@@ -92,6 +106,17 @@
 //! [`ordered-float` crate]: https://docs.rs/ordered-float/2/ordered_float/
 
 #![deny(missing_docs)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
+macro_rules! cfg_ordered_float {
+    ($($item:item)*) => {
+        $(
+            #[cfg(feature = "ordered-float")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "ordered-float")))]
+            $item
+        )*
+    }
+}
 
 mod de;
 mod error;
@@ -103,9 +128,12 @@ mod ser;
 pub use crate::de::from_key;
 #[doc(inline)]
 pub use crate::error::{Error, Result};
-#[cfg(feature = "ordered-float")]
-pub use crate::float::{to_key_with_ordered_float, OrderedFloat, OrderedFloatPolicy};
-pub use crate::float::{FloatPolicy, FloatRepr, NeverFloat, RejectFloatPolicy};
+
+cfg_ordered_float! {
+    pub use crate::float::{to_key_with_ordered_float, OrderedFloat, OrderedFloatPolicy};
+    pub use crate::float::{FloatPolicy, FloatRepr, NeverFloat, RejectFloatPolicy};
+}
+
 #[doc(inline)]
 pub use crate::key::{Float, Integer, Key};
 #[doc(inline)]

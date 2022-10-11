@@ -58,7 +58,7 @@ where
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use serde_derive::{Deserialize, Serialize};
 /// use serde_hashkey::{to_key, to_key_with_ordered_float};
 ///
@@ -183,7 +183,7 @@ impl_from!(Key::Map, Vec<(Key<F>, Key<F>)>);
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use serde_derive::Serialize;
 /// use serde_hashkey::{Key, OrderedFloatPolicy, OrderedFloat, Float};
 ///
@@ -248,7 +248,7 @@ where
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use serde_derive::Deserialize;
 /// use serde_hashkey::{Key, OrderedFloatPolicy};
 ///

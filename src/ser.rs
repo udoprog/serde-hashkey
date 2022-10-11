@@ -11,7 +11,7 @@ use crate::key::{Float, Key};
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use serde_derive::{Deserialize, Serialize};
 /// use serde_hashkey::{from_key, to_key, Key};
 /// use std::collections::HashMap;

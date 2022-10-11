@@ -10,7 +10,7 @@ use crate::key::{Float, Integer, Key};
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use serde_derive::{Deserialize, Serialize};
 /// use serde_hashkey::{from_key, to_key, Key};
 /// use std::collections::HashMap;
@@ -46,7 +46,7 @@ use crate::key::{Float, Integer, Key};
 ///
 /// Using a non-standard float policy:
 ///
-/// ```rust
+/// ```
 /// use serde_derive::{Deserialize, Serialize};
 /// use serde_hashkey::{from_key, to_key_with_ordered_float, OrderedFloat, Key};
 /// use std::collections::HashMap;

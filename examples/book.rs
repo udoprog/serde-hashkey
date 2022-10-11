@@ -1,6 +1,7 @@
+use std::collections::HashMap;
+
 use serde_derive::{Deserialize, Serialize};
 use serde_hashkey::to_key;
-use std::{collections::HashMap, error};
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 struct Author {
@@ -14,7 +15,7 @@ struct Book {
     author: Author,
 }
 
-fn main() -> Result<(), Box<dyn error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let book = Book {
         title: String::from("Birds of a feather"),
         author: Author {

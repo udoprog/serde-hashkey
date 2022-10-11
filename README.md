@@ -15,6 +15,19 @@ want to build a generic in-memory key-value store where you want to store
 arbitrary serde-serializable keys. This is typical for things like caches or
 dependency injection frameworks.
 
+<br>
+
+### Usage
+
+Add the following to your Cargo.toml:
+
+```toml
+[dependencies]
+serde-hashkey = "0.4.2"
+```
+
+<br>
+
 ### Float policies
 
 By default, [Key] can't include floating point types such as `f32` and
@@ -34,14 +47,17 @@ Available float policies are:
 * `ordered-float` - Enables serializing floating point numbers through
   behavior derived from the [`ordered-float` crate]
 
+<br>
+
 ### Examples
 
 > You can run this example with `cargo run --example book`
 
 ```rust
+use std::collections::HashMap;
+
 use serde_derive::{Deserialize, Serialize};
 use serde_hashkey::{from_key, to_key, Error, Key};
-use std::{collections::HashMap, error};
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 struct Author {
@@ -55,34 +71,31 @@ struct Book {
     author: Author,
 }
 
-fn main() -> Result<(), Box<dyn error::Error>> {
-    let book = Book {
-        title: String::from("Birds of a feather"),
-        author: Author {
-            name: String::from("Noah"),
-            age: 42,
-        },
-    };
+let book = Book {
+    title: String::from("Birds of a feather"),
+    author: Author {
+        name: String::from("Noah"),
+        age: 42,
+    },
+};
 
-    let key = to_key(&book)?;
+let key = to_key(&book)?;
 
-    let mut ratings = HashMap::new();
-    ratings.insert(key.clone(), 5);
+let mut ratings = HashMap::new();
+ratings.insert(key.clone(), 5);
 
-    println!("ratings: {:?}", ratings);
+println!("ratings: {:?}", ratings);
 
-    println!(
-        "book as json (through key): {}",
-        serde_json::to_string_pretty(&key)?
-    );
+println!(
+    "book as json (through key): {}",
+    serde_json::to_string_pretty(&key)?
+);
 
-    println!(
-        "book as json (through original object): {}",
-        serde_json::to_string_pretty(&book)?
-    );
+println!(
+    "book as json (through original object): {}",
+    serde_json::to_string_pretty(&book)?
+);
 
-    Ok(())
-}
 ```
 
 [totally ordered nor hashable]: https://internals.rust-lang.org/t/f32-f64-should-implement-hash/5436

@@ -1,12 +1,16 @@
-#[cfg(feature = "ordered-float")]
-pub use self::ordered_float::{to_key_with_ordered_float, OrderedFloat, OrderedFloatPolicy};
+cfg_ordered_float! {
+    pub use self::ordered_float::{to_key_with_ordered_float, OrderedFloat, OrderedFloatPolicy};
+}
+
 use crate::error::Error;
 use serde::de;
 
 mod float_policy;
 mod float_repr;
-#[cfg(feature = "ordered-float")]
-mod ordered_float;
+
+cfg_ordered_float! {
+    mod ordered_float;
+}
 
 pub use self::float_policy::FloatPolicy;
 pub use self::float_repr::FloatRepr;
@@ -59,7 +63,7 @@ impl serde::Serialize for NeverFloat {
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use serde_hashkey::{Key, Float, to_key};
 ///
 /// # fn main() -> Result<(), serde_hashkey::Error> {

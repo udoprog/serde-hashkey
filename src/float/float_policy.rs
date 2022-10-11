@@ -15,7 +15,7 @@ use crate::float::FloatRepr;
 ///
 /// Example using a non-default float policy:
 ///
-/// ```rust
+/// ```
 /// use serde_hashkey::{Key, Float, to_key_with_ordered_float, OrderedFloat, OrderedFloatPolicy};
 ///
 /// # fn main() -> Result<(), serde_hashkey::Error> {

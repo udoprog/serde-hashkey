@@ -1,6 +1,6 @@
 [package]
 name = "serde-hashkey"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["John-John Tedro"]
 repository = "https://github.com/udoprog/serde-hashkey"
 readme = "README.md"
@@ -27,3 +27,4 @@ serde_derive = "1.0.117"
 
 [package.metadata.docs.rs]
 all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
