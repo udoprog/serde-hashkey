@@ -1,6 +1,6 @@
 [package]
 name = "serde-hashkey"
-version = "0.4.2"
+version = "0.4.3"
 authors = ["John-John Tedro"]
 repository = "https://github.com/udoprog/serde-hashkey"
 readme = "README.md"
