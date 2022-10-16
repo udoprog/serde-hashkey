@@ -17,7 +17,7 @@ dependency injection frameworks.
 
 <br>
 
-### Usage
+## Usage
 
 Add the following to your Cargo.toml:
 
@@ -28,7 +28,7 @@ serde-hashkey = "0.4.3"
 
 <br>
 
-### Float policies
+## Float policies
 
 By default, [Key] can't include floating point types such as `f32` and
 `f64`. Neither of these are [totally ordered nor hashable].
@@ -44,14 +44,14 @@ Available float policies are:
 
 <br>
 
-### Features
+## Features
 
 * `ordered-float` - Enables serializing floating point numbers through
   behavior derived from the [`ordered-float` crate]
 
 <br>
 
-### Examples
+## Examples
 
 > You can run this example with `cargo run --example book`
 
@@ -107,5 +107,3 @@ println!(
 [OrderedFloat]: https://docs.rs/serde-hashkey/0/serde_hashkey/enum.OrderedFloat.html
 [to_key_with_ordered_float]: https://docs.rs/serde-hashkey/0/serde_hashkey/fn.to_key_with_ordered_float.html
 [`ordered-float` crate]: https://docs.rs/ordered-float/2/ordered_float/
-
-License: MIT/Apache-2.0
