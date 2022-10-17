@@ -37,7 +37,7 @@ To enable the [Key] type to use `f32` and `f64` it can be constructed with a
 specific float policy.
 
 Available float policies are:
-* [RejectFloat] - the default behavior when using [to_key].
+* [RejectFloatPolicy] - the default behavior when using [to_key].
 * [OrderedFloat] - the behavior when using [to_key_with_ordered_float]. The
   `ordered-float` feature must be enabled to use this. The behavior is
   derived from the [`ordered-float` crate].
@@ -101,9 +101,9 @@ println!(
 ```
 
 [totally ordered nor hashable]: https://internals.rust-lang.org/t/f32-f64-should-implement-hash/5436
-[Key]: https://docs.rs/serde-hashkey/0/serde_hashkey/enum.Key.html
-[to_key]: https://docs.rs/serde-hashkey/0/serde_hashkey/fn.to_key.html
-[RejectFloat]: https://docs.rs/serde-hashkey/0/serde_hashkey/enum.RejectFloat.html
-[OrderedFloat]: https://docs.rs/serde-hashkey/0/serde_hashkey/enum.OrderedFloat.html
-[to_key_with_ordered_float]: https://docs.rs/serde-hashkey/0/serde_hashkey/fn.to_key_with_ordered_float.html
+[Key]: https://docs.rs/serde-hashkey/latest/serde_hashkey/enum.Key.html
+[to_key]: https://docs.rs/serde-hashkey/latest/serde_hashkey/fn.to_key.html
+[RejectFloatPolicy]: https://docs.rs/serde-hashkey/latest/serde_hashkey/struct.RejectFloatPolicy.html
+[OrderedFloat]: https://docs.rs/serde-hashkey/latest/serde_hashkey/struct.OrderedFloat.html
+[to_key_with_ordered_float]: https://docs.rs/serde-hashkey/latest/serde_hashkey/fn.to_key_with_ordered_float.html
 [`ordered-float` crate]: https://docs.rs/ordered-float/2/ordered_float/
