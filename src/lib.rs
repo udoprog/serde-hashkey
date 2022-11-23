@@ -133,8 +133,9 @@ pub use crate::error::{Error, Result};
 
 cfg_ordered_float! {
     pub use crate::float::{to_key_with_ordered_float, OrderedFloat, OrderedFloatPolicy};
-    pub use crate::float::{FloatPolicy, FloatRepr, NeverFloat, RejectFloatPolicy};
 }
+
+pub use crate::float::{FloatPolicy, FloatRepr, NeverFloat, RejectFloatPolicy};
 
 #[doc(inline)]
 pub use crate::key::{Float, Integer, Key};
