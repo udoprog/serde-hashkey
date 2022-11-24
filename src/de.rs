@@ -84,7 +84,7 @@ where
     T: de::DeserializeOwned,
     F: FloatPolicy,
 {
-    T::deserialize(Deserializer::new(&value))
+    T::deserialize(Deserializer::new(value))
 }
 
 impl<'de, F> IntoDeserializer<'de, Error> for &'de Key<F>

@@ -222,8 +222,8 @@ where
             Key::Integer(Integer::I128(v)) => serializer.serialize_i128(*v),
             Key::Float(Float::F32(float)) => float.serialize(serializer),
             Key::Float(Float::F64(float)) => float.serialize(serializer),
-            Key::Bytes(v) => serializer.serialize_bytes(&v),
-            Key::String(v) => serializer.serialize_str(&v),
+            Key::Bytes(v) => serializer.serialize_bytes(v),
+            Key::String(v) => serializer.serialize_str(v),
             Key::Seq(v) => v.serialize(serializer),
             Key::Map(m) => {
                 use self::ser::SerializeMap as _;

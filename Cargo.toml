@@ -1,6 +1,6 @@
 [package]
 name = "serde-hashkey"
-version = "0.4.3"
+version = "0.4.4"
 authors = ["John-John Tedro <udoprog@tedro.se>"]
 edition = "2018"
 description = "Space efficient, in-memory serde serialization which supports hashing."
