@@ -109,25 +109,27 @@ impl Default for Key {
     }
 }
 
-impl Key {
+impl<F> Key<F> 
+where F: FloatPolicy + Ord
+{
     /// Normalize the key, making sure that all contained maps are sorted.
-    pub fn normalize(self) -> Key {
+    pub fn normalize(self) -> Self {
         match self {
-            Key::Seq(mut vec) => {
+            Key::<F>::Seq(mut vec) => {
                 for value in vec.iter_mut() {
-                    *value = mem::replace(value, Key::Unit).normalize();
+                    *value = mem::replace(value, Key::<F>::Unit).normalize();
                 }
 
-                Key::Seq(vec)
+                Key::<F>::Seq(vec)
             }
-            Key::Map(mut map) => {
+            Key::<F>::Map(mut map) => {
                 for (key, value) in map.iter_mut() {
-                    *key = mem::replace(key, Key::Unit).normalize();
-                    *value = mem::replace(value, Key::Unit).normalize();
+                    *key = mem::replace(key, Key::<F>::Unit).normalize();
+                    *value = mem::replace(value, Key::<F>::Unit).normalize();
                 }
 
                 map.sort_by(|a, b| a.0.cmp(&b.0));
-                Key::Map(map)
+                Key::<F>::Map(map)
             }
             other => other,
         }
