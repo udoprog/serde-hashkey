@@ -2,7 +2,7 @@
 
 use serde_derive::{Deserialize, Serialize};
 use serde_hashkey::{
-    from_key, to_key, to_key_with_ordered_float, Error, Float, Integer, Key, OrderedFloat,
+    from_key, to_key, to_key_with_ordered_float, Error, Float, Integer, Key, OrderedFloat, RejectFloatPolicy
 };
 use std::collections::BTreeMap;
 
@@ -63,7 +63,7 @@ fn test_width() {
 
 #[test]
 fn test_normalize() {
-    let a = Key::Map(
+    let a = Key::<RejectFloatPolicy>::Map(
         vec![
             (Key::String("baz".into()), Key::String("biz".into())),
             (Key::String("foo".into()), Key::String("bar".into())),
