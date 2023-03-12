@@ -9,19 +9,19 @@ use std::collections::BTreeMap;
 
 #[test]
 fn test_map() -> Result<(), Error> {
-    let foo = Foo {
+    let value = Enum {
         name: String::from("Hello World"),
     };
 
     let mut map = BTreeMap::new();
-    map.insert(&foo, String::from("bar"));
+    map.insert(&value, String::from("bar"));
 
     match to_key(&map)? {
         Key::Map(_) => (),
         other => panic!("unexpected: {:?}", other),
     }
 
-    match to_key(&foo)? {
+    match to_key(&value)? {
         Key::Map(_) => (),
         other => panic!("unexpected: {:?}", other),
     }
@@ -29,27 +29,27 @@ fn test_map() -> Result<(), Error> {
     return Ok(());
 
     #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
-    struct Foo {
+    struct Enum {
         name: String,
     }
 }
 
 #[test]
 fn test_enum() -> Result<(), Error> {
-    let foo = Foo::Operation1(String::from("Foo"), String::from("Bar"));
-    let value = to_key(&foo)?;
+    let value = Enum::Operation1(String::from("Foo"), String::from("Bar"));
+    let value = to_key(&value)?;
 
     match &value {
         Key::Map(_) => (),
         other => panic!("unexpected: {:?}", other),
     }
 
-    assert_eq!(foo, from_key(&value)?);
-    assert_eq!(Foo::Operation3, from_key(&to_key(&Foo::Operation3)?)?);
+    assert_eq!(value, from_key(&value)?);
+    assert_eq!(Enum::Operation3, from_key(&to_key(&Enum::Operation3)?)?);
     return Ok(());
 
     #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-    enum Foo {
+    enum Enum {
         Operation1(String, String),
         Operation2(String),
         Operation3,
@@ -82,7 +82,7 @@ fn test_normalize() {
 
     assert_ne!(a, b);
     assert_eq!(a, b.clone().normalize());
-    assert_eq!(a.clone().normalize(), b.clone().normalize());
+    assert_eq!(a.normalize(), b.normalize());
 }
 
 #[test]
