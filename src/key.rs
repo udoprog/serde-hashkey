@@ -109,8 +109,9 @@ impl Default for Key {
     }
 }
 
-impl<F> Key<F> 
-where F: FloatPolicy + Ord
+impl<F> Key<F>
+where
+    F: FloatPolicy + Ord,
 {
     /// Normalize the key, making sure that all contained maps are sorted.
     pub fn normalize(self) -> Self {
