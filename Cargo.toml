@@ -3,6 +3,7 @@ name = "serde-hashkey"
 version = "0.4.5"
 authors = ["John-John Tedro <udoprog@tedro.se>"]
 edition = "2018"
+rust-version = "1.56"
 description = "Space efficient, in-memory serde serialization which supports hashing."
 documentation = "https://docs.rs/serde-hashkey"
 readme = "README.md"
