@@ -20,7 +20,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! serde-hashkey = "0.4.5"
+//! serde-hashkey = "0.4.6"
 //! ```
 //!
 //! <br>
