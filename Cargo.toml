@@ -9,7 +9,7 @@ documentation = "https://docs.rs/serde-hashkey"
 readme = "README.md"
 homepage = "https://github.com/udoprog/serde-hashkey"
 repository = "https://github.com/udoprog/serde-hashkey"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 keywords = ["serde", "serialization"]
 categories = ["encoding"]
 
