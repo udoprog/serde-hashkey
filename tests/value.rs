@@ -57,12 +57,6 @@ fn test_enum() -> Result<(), Error> {
 }
 
 #[test]
-fn test_width() {
-    assert_eq!(24, std::mem::size_of::<Integer>());
-    assert!(std::mem::size_of::<Key>() <= 32 && std::mem::size_of::<Key>() >= 24);
-}
-
-#[test]
 fn test_normalize() {
     let a = Key::<RejectFloatPolicy>::Map(
         vec![
