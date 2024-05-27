@@ -185,18 +185,14 @@ where
     }
 
     #[inline]
-    fn serialize_newtype_struct<T: ?Sized>(
-        self,
-        _name: &'static str,
-        value: &T,
-    ) -> Result<Key<F>, Error>
+    fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<Key<F>, Error>
     where
-        T: ser::Serialize,
+        T: ?Sized + ser::Serialize,
     {
         value.serialize(self)
     }
 
-    fn serialize_newtype_variant<T: ?Sized>(
+    fn serialize_newtype_variant<T>(
         self,
         _name: &'static str,
         _variant_index: u32,
@@ -204,7 +200,7 @@ where
         value: &T,
     ) -> Result<Key<F>, Error>
     where
-        T: ser::Serialize,
+        T: ?Sized + ser::Serialize,
     {
         let value = (Key::from(variant.to_owned()), to_key_with_policy(&value)?);
         Ok(Key::Map([value].into()))
@@ -216,9 +212,9 @@ where
     }
 
     #[inline]
-    fn serialize_some<T: ?Sized>(self, value: &T) -> Result<Key<F>, Error>
+    fn serialize_some<T>(self, value: &T) -> Result<Key<F>, Error>
     where
-        T: ser::Serialize,
+        T: ?Sized + ser::Serialize,
     {
         value.serialize(self)
     }
@@ -326,9 +322,9 @@ where
     type Ok = Key<F>;
     type Error = Error;
 
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Error>
+    fn serialize_element<T>(&mut self, value: &T) -> Result<(), Error>
     where
-        T: ser::Serialize,
+        T: ?Sized + ser::Serialize,
     {
         self.vec.push(to_key_with_policy(&value)?);
         Ok(())
@@ -346,9 +342,9 @@ where
     type Ok = Key<F>;
     type Error = Error;
 
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Error>
+    fn serialize_element<T>(&mut self, value: &T) -> Result<(), Error>
     where
-        T: ser::Serialize,
+        T: ?Sized + ser::Serialize,
     {
         ser::SerializeSeq::serialize_element(self, value)
     }
@@ -365,9 +361,9 @@ where
     type Ok = Key<F>;
     type Error = Error;
 
-    fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<(), Error>
+    fn serialize_field<T>(&mut self, value: &T) -> Result<(), Error>
     where
-        T: ser::Serialize,
+        T: ?Sized + ser::Serialize,
     {
         ser::SerializeSeq::serialize_element(self, value)
     }
@@ -384,9 +380,9 @@ where
     type Ok = Key<F>;
     type Error = Error;
 
-    fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<(), Error>
+    fn serialize_field<T>(&mut self, value: &T) -> Result<(), Error>
     where
-        T: ser::Serialize,
+        T: ?Sized + ser::Serialize,
     {
         self.vec.push(to_key_with_policy(&value)?);
         Ok(())
@@ -405,17 +401,17 @@ where
     type Ok = Key<F>;
     type Error = Error;
 
-    fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<(), Error>
+    fn serialize_key<T>(&mut self, key: &T) -> Result<(), Error>
     where
-        T: ser::Serialize,
+        T: ?Sized + ser::Serialize,
     {
         self.next_key = Some(to_key_with_policy(&key)?);
         Ok(())
     }
 
-    fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<(), Error>
+    fn serialize_value<T>(&mut self, value: &T) -> Result<(), Error>
     where
-        T: ser::Serialize,
+        T: ?Sized + ser::Serialize,
     {
         let key = match self.next_key.take() {
             Some(key) => key,
@@ -438,9 +434,9 @@ where
     type Ok = Key<F>;
     type Error = Error;
 
-    fn serialize_field<T: ?Sized>(&mut self, key: &'static str, value: &T) -> Result<(), Error>
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Error>
     where
-        T: ser::Serialize,
+        T: ?Sized + ser::Serialize,
     {
         ser::SerializeMap::serialize_key(self, key)?;
         ser::SerializeMap::serialize_value(self, value)
@@ -458,9 +454,9 @@ where
     type Ok = Key<F>;
     type Error = Error;
 
-    fn serialize_field<T: ?Sized>(&mut self, key: &'static str, value: &T) -> Result<(), Error>
+    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Error>
     where
-        T: ser::Serialize,
+        T: ?Sized + ser::Serialize,
     {
         self.map
             .push((Key::from(String::from(key)), to_key_with_policy(&value)?));
