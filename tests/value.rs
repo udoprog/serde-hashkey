@@ -2,8 +2,7 @@
 
 use serde_derive::{Deserialize, Serialize};
 use serde_hashkey::{
-    from_key, to_key, to_key_with_ordered_float, Error, Float, Integer, Key, OrderedFloat,
-    RejectFloatPolicy,
+    from_key, to_key, to_key_with_ordered_float, Error, Float, Key, OrderedFloat, RejectFloatPolicy,
 };
 use std::collections::BTreeMap;
 
