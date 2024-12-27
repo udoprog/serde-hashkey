@@ -125,7 +125,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        return match self.value {
+        match self.value {
             Key::Unit => visitor.visit_unit(),
             Key::Bool(b) => visitor.visit_bool(*b),
             Key::Integer(Integer::U8(v)) => visitor.visit_u8(*v),
@@ -144,7 +144,7 @@ where
             Key::Seq(array) => visitor.visit_seq(SeqDeserializer::new(array)),
             Key::Map(m) => visitor.visit_map(MapDeserializer::new(m)),
             Key::Bytes(bytes) => visitor.visit_borrowed_bytes(bytes),
-        };
+        }
     }
 
     #[inline]
