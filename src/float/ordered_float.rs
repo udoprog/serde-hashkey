@@ -76,7 +76,7 @@ where
     T: nt02::Float,
 {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        Some(of3::OrderedFloat(self.0).cmp(&of3::OrderedFloat(other.0)))
+        Some(self.cmp(other))
     }
 }
 
